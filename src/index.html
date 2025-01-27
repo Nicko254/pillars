@@ -4,33 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pillars - Financial Tools</title>
+    <link rel="stylesheet" href="/src/styles/variables.css">
+    <link rel="stylesheet" href="/src/styles/globals.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root {
-            --primary-color: #4169E1;
-            --primary-light: #6e8efb;
-            --primary-dark: #3451b2;
-            --secondary-color: #a777e3;
-            --text-color: #333;
-            --background-color: #f0f0f0;
-            --success-color: #28a745;
-            --danger-color: #dc3545;
-            --card-shadow: 0 8px 16px rgba(0,0,0,0.1);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-        }
-
-        body {
-            background-color: var(--background-color);
-            color: var(--text-color);
-            min-height: 100vh;
-        }
-
         /* Header & Navigation */
         .header {
             background: white;
@@ -230,92 +207,6 @@
         </div>
     </main>
 
-    <script>
-        // Navigation handling
-        document.querySelectorAll('.nav-link').forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                // Remove active class from all links
-                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-                // Add active class to clicked link
-                link.classList.add('active');
-                // Load appropriate tool (to be implemented)
-                const tool = link.dataset.tool;
-                loadTool(tool);
-            });
-        });
-
-        // Tool card handling
-        document.querySelectorAll('.tool-card').forEach(card => {
-            card.addEventListener('click', () => {
-                const tool = card.dataset.tool;
-                // Activate corresponding nav link
-                document.querySelectorAll('.nav-link').forEach(link => {
-                    link.classList.toggle('active', link.dataset.tool === tool);
-                });
-                loadTool(tool);
-            });
-        });
-
-        function loadTool(tool) {
-            // Hide welcome section
-            document.querySelector('.welcome-section').style.display = 'none';
-            document.querySelector('.tool-grid').style.display = 'none';
-            
-            // Clear previous tool content
-            const existingTool = document.querySelector('.tool-content');
-            if (existingTool) {
-                existingTool.remove();
-            }
-
-            // Create new tool container
-            const toolContainer = document.createElement('div');
-            toolContainer.className = 'tool-content';
-            document.querySelector('.main-content').appendChild(toolContainer);
-
-            // Load tool content (to be implemented)
-            switch(tool) {
-                case 'plan':
-                    loadBusinessPlanningTool(toolContainer);
-                    break;
-                case 'forecast':
-                    loadForecastingTool(toolContainer);
-                    break;
-                case 'grow':
-                    loadGrowthTool(toolContainer);
-                    break;
-                case 'dashboard':
-                    loadDashboard(toolContainer);
-                    break;
-            }
-        }
-
-        // Placeholder functions for loading tools
-        function loadBusinessPlanningTool(container) {
-            // Implementation to come
-        }
-
-        function loadForecastingTool(container) {
-            // Implementation to come
-        }
-
-        function loadGrowthTool(container) {
-            // Implementation to come
-        }
-
-        function loadDashboard(container) {
-            // Show welcome section and tool grid for dashboard
-            document.querySelector('.welcome-section').style.display = 'block';
-            document.querySelector('.tool-grid').style.display = 'grid';
-        }
-
-        // Check for stored user session
-        const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-        if (isLoggedIn) {
-            const userEmail = localStorage.getItem('userEmail');
-            document.querySelector('.username').textContent = userEmail;
-            document.querySelector('.login-btn').textContent = 'Sign Out';
-        }
-    </script>
+    <script src="/src/main.js" type="module"></script>
 </body>
 </html>
