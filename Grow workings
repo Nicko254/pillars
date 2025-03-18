@@ -829,7 +829,6 @@ async function loadAllData() {
             const section = input.dataset.section;
             const category = input.dataset.category;
             const rowId = `${toolId}-${section.replace(/\s+/g, '')}-${category.replace(/\s+/g, '')}
-const rowId = `${toolId}-${section.replace(/\s+/g, '')}-${category.replace(/\s+/g, '')}`;
             
             totals[section] = totals[section] || Array(months.length).fill(0);
             totals[section][col] += value;
