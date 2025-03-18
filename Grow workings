@@ -1,1 +1,1323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Actuals and Summary Module</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background-color: #f0f0f0; 
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #4a4a4a;
+        }
+        .tile-container { 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 20px; 
+            justify-content: center;
+            margin-bottom: 30px; 
+        }
+        .tile {
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+            border-radius: 16px;
+            padding: 24px;
+            width: 300px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            color: white;
+            text-align: center;
+        }
+        .tile:hover { 
+            transform: translateY(-5px); 
+            box-shadow: 0 12px 20px rgba(0,0,0,0.2); 
+        }
+        .tile h2 { 
+            margin-top: 0; 
+            margin-bottom: 16px; 
+            font-size: 24px; 
+            font-weight: 600; 
+        }
+        .tile p { 
+            font-size: 14px; 
+            line-height: 1.5; 
+            margin-bottom: 0; 
+        }
+        .actuals-tool, .summary-tool { 
+            display: none;
+            margin-top: 20px; 
+            background-color: white; 
+            border-radius: 16px; 
+            padding: 24px; 
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-bottom: 20px; 
+        }
+        th, td { 
+            border: 1px solid #ddd; 
+            padding: 12px; 
+            text-align: left; 
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        input[type="number"], input[type="text"] { 
+            width: 100%; 
+            padding: 8px; 
+            box-sizing: border-box; 
+            font-size: 14px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .section-header { 
+            background-color: #e9ecef; 
+            font-weight: bold; 
+        }
+        .total-row { 
+            font-weight: bold; 
+            background-color: #f8f9fa; 
+        }
+        .chart-container { 
+            width: 100%; 
+            height: 400px; 
+            margin-top: 30px;
+        }
+        .comparison-table { 
+            margin-top: 30px; 
+        }
+        .comparison-table th { 
+            background-color: #e9ecef; 
+        }
+        .variance-positive { 
+            color: #28a745; 
+        }
+        .variance-negative { 
+            color: #dc3545; 
+        }
+        .learning-section {
+            margin-top: 30px;
+            width: 100%;
+        }
+        .learning-textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: vertical;
+            margin-bottom: 20px;
+        }
+        .tax-rate-input {
+            width: 80px;
+            padding: 8px;
+            margin-right: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .tax-rate-container {
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+        }
+        .financial-summary {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        .financial-summary div {
+            margin: 8px 0;
+            padding: 8px;
+            background-color: white;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .financial-summary h3 {
+            color: #4a4a4a;
+            margin-top: 0;
+        }
+        .add-row-btn, .remove-btn {
+            background-color: #6e8efb;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 12px;
+            border-radius: 4px;
+            margin: 2px;
+        }
+        .remove-btn { 
+            background-color: #ff4d4d; 
+        }
+        .category-input {
+            width: 100%;
+            padding: 4px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Financial Analysis Dashboard</h1>
+    <div class="tile-container">
+        <div class="tile" data-tool="incomeStatementActualsTool">
+            <h2>Income Statement Actuals</h2>
+            <p>Record and analyze your actual income statement data.</p>
+        </div>
+        <div class="tile" data-tool="cashFlowActualsTool">
+            <h2>Cash Flow Actuals</h2>
+            <p>Track your actual cash inflows and outflows.</p>
+        </div>
+        <div class="tile" data-tool="summaryTool">
+            <h2>Forecast vs Actuals Summary</h2>
+            <p>Compare your forecasts with actual results.</p>
+        </div>
+    </div>
 
+    <div id="incomeStatementActualsTool" class="actuals-tool">
+        <h2>Income Statement Actuals</h2>
+        <table id="incomeStatementActualsTable"></table>
+        <div class="chart-container">
+            <canvas id="incomeStatementActualsChart"></canvas>
+        </div>
+        <div class="tax-rate-container">
+            <label for="incomeStatementActuals-tax-rate">Tax Rate (%): </label>
+            <input 
+                type="number" 
+                id="incomeStatementActuals-tax-rate" 
+                value="25" 
+                min="0" 
+                max="100" 
+                step="0.1" 
+                style="width: 80px; margin-right: 10px;" 
+                onchange="calculateTotals('incomeStatementActualsTool')"
+            >
+        </div>
+        <div class="financial-summary"></div>
+    </div>
+
+    <div id="cashFlowActualsTool" class="actuals-tool">
+        <h2>Cash Flow Actuals</h2>
+        <table id="cashFlowActualsTable"></table>
+        <div class="chart-container">
+            <canvas id="cashFlowActualsChart"></canvas>
+        </div>
+        <div class="tax-rate-container">
+            <label for="cashFlowActuals-tax-rate">Tax Rate (%): </label>
+            <input 
+                type="number" 
+                id="cashFlowActuals-tax-rate" 
+                value="25" 
+                min="0" 
+                max="100" 
+                step="0.1" 
+                style="width: 80px; margin-right: 10px;" 
+                onchange="calculateTotals('cashFlowActualsTool')"
+            >
+        </div>
+        <div class="financial-summary"></div>
+    </div>
+
+    <div id="summaryTool" class="summary-tool">
+        <h2>Forecast vs Actuals Summary</h2>
+        <div id="comparisonTables"></div>
+        <div class="chart-container">
+            <canvas id="comparisonChart"></canvas>
+        </div>
+        <div class="learning-section">
+            <h3>Learning Outcomes</h3>
+            
+            <h4>Key Decisions and Their Impact</h4>
+            <textarea 
+                id="keyDecisionsText" 
+                class="learning-textarea" 
+                placeholder="What were the key decisions you made and how did they impact your venture?"
+                onchange="saveLearningOutcomes()"></textarea>
+            
+            <h4>Biggest Challenges Faced</h4>
+            <textarea 
+                id="challengesText" 
+                class="learning-textarea" 
+                placeholder="What were the main challenges you encountered and how did you address them?"
+                onchange="saveLearningOutcomes()"></textarea>
+            
+            <h4>Success Factors Identified</h4>
+            <textarea 
+                id="successFactorsText" 
+                class="learning-textarea" 
+                placeholder="What factors contributed to your success or would be crucial for future success?"
+                onchange="saveLearningOutcomes()"></textarea>
+        </div>
+    </div>
+<script>
+// Unified data management for both tools
+const FinanceToolsData = {
+    // Storage keys
+    keys: {
+        FORECAST_DATA: 'financeTools_forecastData',
+        ACTUALS_DATA: 'financeTools_actualsData',
+        LEARNING_OUTCOMES: 'financeTools_learningOutcomes'
+    },
+    
+    // Save forecast data
+    saveForecastData: function(incomeStatementData, cashFlowData) {
+        try {
+            const data = {
+                incomeStatement: incomeStatementData,
+                cashFlow: cashFlowData,
+                lastUpdated: new Date().toISOString()
+            };
+            
+            console.log("Saving forecast data:", data);
+            localStorage.setItem(this.keys.FORECAST_DATA, JSON.stringify(data));
+            
+            // Try to save to Wix DB if available
+            this.saveToWixDB('forecastData', data);
+            
+            return true;
+        } catch (error) {
+            console.error('Error saving forecast data:', error);
+            return false;
+        }
+    },
+    
+    // Save actuals data
+    saveActualsData: function(incomeStatementData, cashFlowData) {
+        try {
+            const data = {
+                incomeStatement: incomeStatementData,
+                cashFlow: cashFlowData,
+                lastUpdated: new Date().toISOString()
+            };
+            
+            console.log("Saving actuals data:", data);
+            localStorage.setItem(this.keys.ACTUALS_DATA, JSON.stringify(data));
+            
+            // Try to save to Wix DB if available
+            this.saveToWixDB('actualsData', data);
+            
+            return true;
+        } catch (error) {
+            console.error('Error saving actuals data:', error);
+            return false;
+        }
+    },
+    
+    // Save learning outcomes
+    saveLearningOutcomes: function(outcomes) {
+        try {
+            console.log("Saving learning outcomes:", outcomes);
+            localStorage.setItem(this.keys.LEARNING_OUTCOMES, JSON.stringify(outcomes));
+            
+            // Try to save to Wix DB if available
+            this.saveToWixDB('learningOutcomes', outcomes);
+            
+            return true;
+        } catch (error) {
+            console.error('Error saving learning outcomes:', error);
+            return false;
+        }
+    },
+    
+    // Load forecast data
+    loadForecastData: function() {
+        try {
+            const localData = localStorage.getItem(this.keys.FORECAST_DATA);
+            
+            if (localData) {
+                const parsed = JSON.parse(localData);
+                console.log("Loaded forecast data from localStorage:", parsed);
+                return parsed;
+            }
+            
+            console.log("No forecast data found in localStorage");
+            return null;
+        } catch (error) {
+            console.error('Error loading forecast data:', error);
+            return null;
+        }
+    },
+    
+    // Load actuals data
+    loadActualsData: function() {
+        try {
+            const localData = localStorage.getItem(this.keys.ACTUALS_DATA);
+            
+            if (localData) {
+                const parsed = JSON.parse(localData);
+                console.log("Loaded actuals data from localStorage:", parsed);
+                return parsed;
+            }
+            
+            console.log("No actuals data found in localStorage");
+            return null;
+        } catch (error) {
+            console.error('Error loading actuals data:', error);
+            return null;
+        }
+    },
+    
+    // Load learning outcomes
+    loadLearningOutcomes: function() {
+        try {
+            const localData = localStorage.getItem(this.keys.LEARNING_OUTCOMES);
+            
+            if (localData) {
+                const parsed = JSON.parse(localData);
+                console.log("Loaded learning outcomes from localStorage:", parsed);
+                return parsed;
+            }
+            
+            return null;
+        } catch (error) {
+            console.error('Error loading learning outcomes:', error);
+            return null;
+        }
+    },
+    
+    // Save to Wix DB if available
+    saveToWixDB: async function(collection, data) {
+        // Check if wix is available
+        if (typeof wix === 'undefined' || !wix.data) {
+            console.log("Wix APIs not available, skipping DB save");
+            return false;
+        }
+        
+        try {
+            const user = await wix.users.currentUser;
+            if (!user) {
+                console.warn('No user logged in, skipping Wix DB save');
+                return false;
+            }
+            
+            const dataWithUserId = {
+                ...data,
+                userId: user.id
+            };
+            
+            // Check if record exists
+            const existingData = await wix.data.query(collection)
+                .eq('userId', user.id)
+                .find();
+            
+            if (existingData.items.length > 0) {
+                await wix.data.update(collection, {
+                    _id: existingData.items[0]._id,
+                    ...dataWithUserId
+                });
+                console.log(`Updated existing ${collection} record in Wix DB`);
+            } else {
+                await wix.data.insert(collection, dataWithUserId);
+                console.log(`Inserted new ${collection} record in Wix DB`);
+            }
+            
+            return true;
+        } catch (error) {
+            console.error(`Error saving to Wix DB (${collection}):`, error);
+            return false;
+        }
+    },
+    
+    // Load from Wix DB if available
+    loadFromWixDB: async function(collection) {
+        // Check if wix is available
+        if (typeof wix === 'undefined' || !wix.data) {
+            console.log("Wix APIs not available, skipping DB load");
+            return null;
+        }
+        
+        try {
+            const user = await wix.users.currentUser;
+            if (!user) {
+                console.warn('No user logged in, skipping Wix DB load');
+                return null;
+            }
+            
+            const savedData = await wix.data.query(collection)
+                .eq('userId', user.id)
+                .find();
+            
+            if (savedData.items.length === 0) {
+                console.log(`No ${collection} records found in Wix DB`);
+                return null;
+            }
+            
+            console.log(`Loaded ${collection} from Wix DB:`, savedData.items[0]);
+            return savedData.items[0];
+        } catch (error) {
+            console.error(`Error loading from Wix DB (${collection}):`, error);
+            return null;
+        }
+    }
+};
+
+// Initialize Wix if it's available
+function initWixIntegration() {
+    if (typeof wix !== 'undefined') {
+        try {
+            // Listen for user login events
+            wix.users.onLogin((user) => {
+                console.log('User logged in, refreshing data');
+                loadAllData();
+            });
+            
+            // Check if user is already logged in
+            wix.users.currentUser
+                .then(user => {
+                    if (user) {
+                        console.log('User already logged in');
+                    }
+                })
+                .catch(error => {
+                    console.warn('Error checking current user:', error);
+                });
+        } catch (error) {
+            console.warn('Error initializing Wix integration:', error);
+        }
+    } else {
+        console.log("Wix APIs not detected");
+    }
+}
+
+// Load all data from storage (both localStorage and Wix if available)
+async function loadAllData() {
+    console.log("Loading all data for actuals/grow tools");
+    
+    // Load actuals data
+    await loadActualsData('incomeStatementActualsTool');
+    await loadActualsData('cashFlowActualsTool');
+    
+    // Load learning outcomes
+    await loadLearningOutcomesData();
+    
+    // Update summary if it's visible
+    if (document.getElementById('summaryTool') && 
+        document.getElementById('summaryTool').style.display === 'block') {
+        updateSummary();
+    }
+}
+
+(function() {
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const tools = {
+        incomeStatementActualsTool: {
+            table: 'incomeStatementActualsTable',
+            chart: 'incomeStatementActualsChart',
+            sections: [
+                { name: 'Revenue', rows: ['Sales', 'Other Income'] },
+                { name: 'Expenses', rows: ['Cost of Goods Sold', 'Salaries', 'Rent', 'Utilities', 'Marketing', 'Other Expenses'] }
+            ]
+        },
+        cashFlowActualsTool: {
+            table: 'cashFlowActualsTable',
+            chart: 'cashFlowActualsChart',
+            sections: [
+                { name: 'Cash Inflows', rows: ['Sales', 'Investments', 'Other Income'] },
+                { name: 'Cash Outflows', rows: ['Expenses', 'Equipment Purchases', 'Loan Payments'] }
+            ]
+        }
+    };
+
+    // UPDATED: Toggle tool function
+    function toggleTool(toolId) {
+        console.log(`Toggling tool: ${toolId}`);
+        const allTools = document.querySelectorAll('.actuals-tool, .summary-tool');
+        
+        allTools.forEach(tool => {
+            if (tool.id === toolId) {
+                const wasHidden = tool.style.display === 'none' || tool.style.display === '';
+                tool.style.display = wasHidden ? 'block' : 'none';
+                
+                if (wasHidden) {
+                    console.log(`Showing ${toolId} and loading data...`);
+                    
+                    if (toolId === 'summaryTool') {
+                        updateSummary();
+                    } else {
+                        initializeTool(toolId);
+                        loadActualsData(toolId);
+                    }
+                }
+            } else {
+                tool.style.display = 'none';
+            }
+        });
+    }
+
+    function createRow(toolId, section, category, isEditable = false) {
+        const rowId = `${toolId}-${section.replace(/\s+/g, '')}-${category.replace(/\s+/g, '')}`;
+        
+        let categoryCell;
+        if (isEditable) {
+            categoryCell = `<td><input type="text" class="category-input" value="${category}" 
+                onchange="updateRowCategory('${toolId}', '${rowId}', this.value)" 
+                style="width: 100%; padding: 4px; border: 1px solid #ddd; border-radius: 4px;">
+            </td>`;
+        } else {
+            categoryCell = `<td>${category}</td>`;
+        }
+
+        return `
+            <tr id="${rowId}">
+                ${categoryCell}
+                ${months.map((_, i) => `<td>
+                    <input type="number" 
+                        class="actuals-input" 
+                        data-tool="${toolId}" 
+                        data-section="${section}" 
+                        data-category="${category}" 
+                        data-col="${i}" 
+                        onchange="calculateTotals('${toolId}')">
+                </td>`).join('')}
+                <td id="${rowId}Total">$0.00</td>
+                <td><button class="remove-btn" onclick="removeRow('${toolId}', '${rowId}')">Remove</button></td>
+            </tr>`;
+    }
+
+    function updateRowCategory(toolId, rowId, newCategory) {
+        const row = document.getElementById(rowId);
+        const inputs = row.querySelectorAll('.actuals-input');
+        inputs.forEach(input => {
+            input.dataset.category = newCategory;
+        });
+        calculateTotals(toolId);
+    }
+
+    // UPDATED: Initialize tool function
+    function initializeTool(toolId) {
+        console.log(`Initializing ${toolId}...`);
+        
+        // Only proceed if this is an actuals tool (not the summary tool)
+        if (!tools[toolId]) {
+            console.log(`${toolId} is not an actuals tool, skipping initialization`);
+            return;
+        }
+        
+        const tool = tools[toolId];
+        const table = document.getElementById(tool.table);
+        
+        if (!table) {
+            console.error(`Table not found for ${toolId}`);
+            return;
+        }
+        
+        if (table.rows.length === 0) {
+            console.log(`Creating table structure for ${toolId}`);
+            
+            let html = `
+                <tr>
+                    <th>Category</th>
+                    ${months.map(month => `<th>${month}</th>`).join('')}
+                    <th>Total</th>
+                    <th>Action</th>
+                </tr>`;
+
+            tool.sections.forEach(section => {
+                html += `
+                    <tr class="section-header">
+                        <td colspan="${months.length + 3}">${section.name} 
+                            <button class="add-row-btn" onclick="addRow('${toolId}', '${section.name}')">Add Row</button>
+                        </td>
+                    </tr>`;
+                section.rows.forEach(row => {
+                    html += createRow(toolId, section.name, row);
+                });
+                html += `
+                    <tr class="total-row">
+                        <td>Total ${section.name}</td>
+                        ${months.map((_, i) => `<td id="total${section.name.replace(/\s+/g, '')}${toolId}${i}">$0.00</td>`).join('')}
+                        <td id="total${section.name.replace(/\s+/g, '')}${toolId}Total">$0.00</td>
+                        <td></td>
+                    </tr>`;
+            });
+
+            html += `
+                <tr class="total-row">
+                    <td>${toolId === 'cashFlowActualsTool' ? 'Net Cash Flow' : 'Net Income'}</td>
+                    ${months.map((_, i) => `<td id="net${toolId}${i}">$0.00</td>`).join('')}
+                    <td id="net${toolId}Total">$0.00</td>
+                    <td></td>
+                </tr>`;
+
+            table.innerHTML = html;
+        } else {
+            console.log(`Table already exists for ${toolId}, skipping creation`);
+        }
+    }
+
+    function addRow(toolId, section) {
+        const table = document.getElementById(tools[toolId].table);
+        const sectionRows = Array.from(table.querySelectorAll(`tr`)).filter(row => 
+            row.id && row.id.startsWith(`${toolId}-${section.replace(/\s+/g, '')}-`)
+        );
+        const newRowNumber = sectionRows.length + 1;
+        const newCategory = `New Item ${newRowNumber}`;
+        const newRowHtml = createRow(toolId, section, newCategory, true);
+        
+        const totalRow = Array.from(table.rows).find(row => 
+            row.cells[0].textContent.trim() === `Total ${section}`
+        );
+        
+        if (totalRow) {
+            totalRow.insertAdjacentHTML('beforebegin', newRowHtml);
+            calculateTotals(toolId);
+        }
+    }
+
+    function removeRow(toolId, rowId) {
+        const row = document.getElementById(rowId);
+        if (row) {
+            row.remove();
+            calculateTotals(toolId);
+        }
+    }
+
+    function calculateSectionTotal(toolId, sectionName) {
+        const totalElement = document.getElementById(`total${sectionName.replace(/\s+/g, '')}${toolId}Total`);
+        return totalElement ? parseFloat(totalElement.textContent.replace('$', '')) || 0 : 0;
+    }
+
+    // UPDATED: Save actuals input data
+    async function saveActualsInputData(toolId) {
+        console.log(`Saving input data for ${toolId}...`);
+        
+        const tool = tools[toolId];
+        if (!tool) {
+            console.error(`Tool configuration not found for ${toolId}`);
+            return {};
+        }
+        
+        const inputData = {};
+        
+        tool.sections.forEach(section => {
+            inputData[section.name] = {};
+            
+            section.rows.forEach(row => {
+                const inputs = document.querySelectorAll(`[data-tool="${toolId}"][data-section="${section.name}"][data-category="${row}"]`);
+                inputData[section.name][row] = Array.from(inputs).map(input => input.value || '');
+            });
+        });
+
+        return inputData;
+    }
+
+    // UPDATED: Save actuals data
+    async function saveActualsData() {
+        try {
+            console.log("Saving actuals data...");
+            
+            const incomeStatementData = {
+                revenue: calculateSectionTotal('incomeStatementActualsTool', 'Revenue'),
+                expenses: calculateSectionTotal('incomeStatementActualsTool', 'Expenses'),
+                inputs: await saveActualsInputData('incomeStatementActualsTool')
+            };
+            
+            const cashFlowData = {
+                inflows: calculateSectionTotal('cashFlowActualsTool', 'Cash Inflows'),
+                outflows: calculateSectionTotal('cashFlowActualsTool', 'Cash Outflows'),
+                inputs: await saveActualsInputData('cashFlowActualsTool')
+            };
+
+            // Save using the unified storage system
+            FinanceToolsData.saveActualsData(incomeStatementData, cashFlowData);
+            
+            console.log("Actuals data saved successfully");
+            return true;
+        } catch (error) {
+            console.error('Error saving actuals data:', error);
+            return false;
+        }
+    }
+
+    // UPDATED: Load actuals data
+    async function loadActualsData(toolId) {
+        try {
+            console.log(`Loading actuals data for ${toolId}...`);
+            
+            // Make sure the tool is initialized first
+            initializeTool(toolId);
+            
+            // First try to load from Wix DB if available
+            let toolData = null;
+            
+            try {
+                const wixData = await FinanceToolsData.loadFromWixDB('actualsData');
+                if (wixData) {
+                    toolData = toolId === 'incomeStatementActualsTool' 
+                        ? wixData.incomeStatement 
+                        : wixData.cashFlow;
+                }
+            } catch (wixError) {
+                console.error('Error loading from Wix DB:', wixError);
+            }
+            
+            // If no Wix data, try localStorage
+            if (!toolData || !toolData.inputs) {
+                const savedData = FinanceToolsData.loadActualsData();
+                if (savedData) {
+                    toolData = toolId === 'incomeStatementActualsTool' 
+                        ? savedData.incomeStatement 
+                        : savedData.cashFlow;
+                }
+            }
+            
+            // If we have data, populate the inputs
+            if (toolData && toolData.inputs) {
+                console.log(`Found data for ${toolId}:`, toolData);
+                
+                Object.entries(toolData.inputs).forEach(([section, rows]) => {
+                    Object.entries(rows).forEach(([row, values]) => {
+                        values.forEach((value, index) => {
+                            const input = document.querySelector(
+                                `[data-tool="${toolId}"][data-section="${section}"][data-category="${row}"][data-col="${index}"]`
+                            );
+                            if (input) {
+                                input.value = value;
+                                console.log(`Set ${toolId} input [${section}][${row}][${index}] = ${value}`);
+                            } else {
+                                console.warn(`Input not found for ${toolId} [${section}][${row}][${index}]`);
+                            }
+                        });
+                    });
+                });
+                
+                calculateTotals(toolId);
+                return true;
+            } else {
+                console.log(`No data found for ${toolId}`);
+            }
+            
+            return false;
+        } catch (error) {
+            console.error('Error loading actuals data:', error);
+            return false;
+        }
+    }
+
+    // UPDATED: Calculate totals function
+    function calculateTotals(toolId) {
+        console.log(`Calculating totals for ${toolId}...`);
+        
+        const tool = tools[toolId];
+        if (!tool) {
+            console.error(`Tool not found: ${toolId}`);
+            return;
+        }
+        
+        const totals = {};
+        tool.sections.forEach(section => {
+            totals[section.name] = Array(months.length).fill(0);
+        });
+
+        document.querySelectorAll(`[data-tool="${toolId}"]`).forEach(input => {
+            const value = parseFloat(input.value) || 0;
+            const col = parseInt(input.dataset.col);
+            const section = input.dataset.section;
+            const category = input.dataset.category;
+            const rowId = `${toolId}-${section.replace(/\s+/g, '')}-${category.replace(/\s+/g, '')}
+const rowId = `${toolId}-${section.replace(/\s+/g, '')}-${category.replace(/\s+/g, '')}`;
+            
+            totals[section] = totals[section] || Array(months.length).fill(0);
+            totals[section][col] += value;
+
+            const rowTotalCell = document.getElementById(`${rowId}Total`);
+            if (rowTotalCell) {
+                const rowInputs = document.querySelectorAll(`[data-tool="${toolId}"][data-section="${section}"][data-category="${category}"]`);
+                const rowTotal = Array.from(rowInputs).reduce((sum, input) => sum + (parseFloat(input.value) || 0), 0);
+                rowTotalCell.textContent = `$${rowTotal.toFixed(2)}`;
+            }
+        });
+
+        tool.sections.forEach(section => {
+            months.forEach((_, i) => {
+                const totalElement = document.getElementById(`total${section.name.replace(/\s+/g, '')}${toolId}${i}`);
+                if (totalElement) {
+                    totalElement.textContent = `$${totals[section.name][i].toFixed(2)}`;
+                }
+            });
+
+            const sectionTotal = totals[section.name].reduce((a, b) => a + b, 0);
+            const totalElement = document.getElementById(`total${section.name.replace(/\s+/g, '')}${toolId}Total`);
+            if (totalElement) {
+                totalElement.textContent = `$${sectionTotal.toFixed(2)}`;
+            }
+        });
+
+        // Get current tax rate
+        const taxRateInput = document.getElementById(`${toolId}-tax-rate`);
+        const taxRate = (parseFloat(taxRateInput?.value) || 25) / 100;
+
+        const netTotals = Array(months.length).fill(0);
+        const taxTotals = Array(months.length).fill(0);
+
+        months.forEach((_, i) => {
+            const revenue = totals[tool.sections[0].name][i];
+            const expenses = totals[tool.sections[1].name][i];
+            const profit = revenue - expenses;
+            const tax = profit > 0 ? profit * taxRate : 0;
+            taxTotals[i] = tax;
+            netTotals[i] = profit - tax;
+            
+            const netElement = document.getElementById(`net${toolId}${i}`);
+            if (netElement) {
+                netElement.textContent = `$${netTotals[i].toFixed(2)}`;
+            }
+        });
+
+        const totalNet = netTotals.reduce((a, b) => a + b, 0);
+        const netTotalElement = document.getElementById(`net${toolId}Total`);
+        if (netTotalElement) {
+            netTotalElement.textContent = `$${totalNet.toFixed(2)}`;
+        }
+
+        // Update the financial summary
+        const totalRevenue = totals[tool.sections[0].name].reduce((a, b) => a + b, 0);
+        const totalExpenses = totals[tool.sections[1].name].reduce((a, b) => a + b, 0);
+        const profitBeforeTax = totalRevenue - totalExpenses;
+        const totalTax = taxTotals.reduce((a, b) => a + b, 0);
+        const profitAfterTax = profitBeforeTax - totalTax;
+        const profitMargin = totalRevenue > 0 ? (profitAfterTax / totalRevenue) * 100 : 0;
+
+        const financialSummary = document.querySelector(`#${toolId} .financial-summary`);
+        if (financialSummary) {
+            financialSummary.innerHTML = `
+                <h3>Financial Analysis</h3>
+                <div>Total ${tool.sections[0].name}: $${totalRevenue.toFixed(2)}</div>
+                <div>Total ${tool.sections[1].name}: $${totalExpenses.toFixed(2)}</div>
+                <div>Profit Before Tax: $${profitBeforeTax.toFixed(2)}</div>
+                <div>Tax: $${totalTax.toFixed(2)}</div>
+                <div>Net ${toolId === 'cashFlowActualsTool' ? 'Cash Flow' : 'Income'}: $${profitAfterTax.toFixed(2)}</div>
+                <div>${toolId === 'cashFlowActualsTool' ? 'Cash Flow' : 'Profit'} Margin: ${profitMargin.toFixed(2)}%</div>
+            `;
+        }
+
+        updateChart(toolId, netTotals);
+        
+        // Save data whenever calculations are updated
+        saveActualsData();
+        console.log(`${toolId} calculations completed and data saved`);
+        
+        // If the summary tool is visible, update it
+        if (document.getElementById('summaryTool').style.display === 'block') {
+            updateSummary();
+        }
+    }
+
+    function updateChart(toolId, data) {
+        const ctx = document.getElementById(tools[toolId].chart);
+        if (!ctx) return;
+
+        if (window[`${toolId}Chart`]) {
+            window[`${toolId}Chart`].destroy();
+        }
+
+        window[`${toolId}Chart`] = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: months,
+                datasets: [{
+                    label: toolId === 'cashFlowActualsTool' ? 'Net Cash Flow' : 'Net Income',
+                    data: data,
+                    backgroundColor: data.map(value => value >= 0 ? 'rgba(75, 192, 192, 0.6)' : 'rgba(255, 99, 132, 0.6)'),
+                    borderColor: data.map(value => value >= 0 ? 'rgb(75, 192, 192)' : 'rgb(255, 99, 132)'),
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Amount ($)'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // UPDATED: Update summary function
+    function updateSummary() {
+        console.log("Updating summary...");
+        const comparisonTables = document.getElementById('comparisonTables');
+        
+        // Load forecast data
+        const forecastData = FinanceToolsData.loadForecastData() || {
+            incomeStatement: { revenue: 0, expenses: 0 },
+            cashFlow: { inflows: 0, outflows: 0 }
+        };
+
+        console.log("Forecast data for summary:", forecastData);
+
+        // Get actuals data
+        const incomeStatementActuals = {
+            revenue: calculateSectionTotal('incomeStatementActualsTool', 'Revenue'),
+            expenses: calculateSectionTotal('incomeStatementActualsTool', 'Expenses')
+        };
+        
+        const cashFlowActuals = {
+            inflows: calculateSectionTotal('cashFlowActualsTool', 'Cash Inflows'),
+            outflows: calculateSectionTotal('cashFlowActualsTool', 'Cash Outflows')
+        };
+
+        console.log("Actuals data for summary:", { incomeStatementActuals, cashFlowActuals });
+
+        // Get tax rate
+        const taxRateInput = document.getElementById('incomeStatementActuals-tax-rate');
+        const taxRate = parseFloat(taxRateInput?.value) || 25;
+
+        // Calculate Income Statement metrics
+        const actualNetProfit = incomeStatementActuals.revenue - incomeStatementActuals.expenses;
+        const actualTax = actualNetProfit > 0 ? actualNetProfit * (taxRate / 100) : 0;
+        const actualProfitAfterTax = actualNetProfit - actualTax;
+        
+        const forecastNetProfit = forecastData.incomeStatement.revenue - forecastData.incomeStatement.expenses;
+        const forecastTax = forecastNetProfit > 0 ? forecastNetProfit * (taxRate / 100) : 0;
+        const forecastProfitAfterTax = forecastNetProfit - forecastTax;
+
+        // Calculate financial ratios
+        const actualGrossProfitMargin = (incomeStatementActuals.revenue > 0) ? 
+            ((incomeStatementActuals.revenue - incomeStatementActuals.expenses) / incomeStatementActuals.revenue * 100) : 0;
+        const actualNetProfitMargin = (incomeStatementActuals.revenue > 0) ? 
+            (actualProfitAfterTax / incomeStatementActuals.revenue * 100) : 0;
+        const actualExpenseRatio = (incomeStatementActuals.revenue > 0) ?
+            (incomeStatementActuals.expenses / incomeStatementActuals.revenue * 100) : 0;
+
+        // Safely calculate variance percentages
+        function safePercentage(actual, forecast) {
+            if (!forecast || forecast === 0) return "N/A";
+            return ((actual - forecast) / forecast * 100).toFixed(2);
+        }
+
+        // Build Income Statement comparison table
+        let html = `
+            <h3>Income Statement Analysis</h3>
+            <table class="comparison-table">
+                <tr>
+                    <th>Category</th>
+                    <th>Forecast</th>
+                    <th>Actual</th>
+                    <th>Variance</th>
+                    <th>Variance %</th>
+                </tr>
+                <tr>
+                    <td>Total Revenue</td>
+                    <td>$${forecastData.incomeStatement.revenue.toFixed(2)}</td>
+                    <td>$${incomeStatementActuals.revenue.toFixed(2)}</td>
+                    <td class="${incomeStatementActuals.revenue - forecastData.incomeStatement.revenue >= 0 ? 'variance-positive' : 'variance-negative'}">
+                        $${(incomeStatementActuals.revenue - forecastData.incomeStatement.revenue).toFixed(2)}
+                    </td>
+                    <td class="${incomeStatementActuals.revenue - forecastData.incomeStatement.revenue >= 0 ? 'variance-positive' : 'variance-negative'}">
+                        ${safePercentage(incomeStatementActuals.revenue, forecastData.incomeStatement.revenue)}%
+                    </td>
+                </tr>
+                <tr>
+                    <td>Total Expenses</td>
+                    <td>$${forecastData.incomeStatement.expenses.toFixed(2)}</td>
+                    <td>$${incomeStatementActuals.expenses.toFixed(2)}</td>
+                    <td class="${forecastData.incomeStatement.expenses - incomeStatementActuals.expenses >= 0 ? 'variance-positive' : 'variance-negative'}">
+                        $${(forecastData.incomeStatement.expenses - incomeStatementActuals.expenses).toFixed(2)}
+                    </td>
+                    <td class="${forecastData.incomeStatement.expenses - incomeStatementActuals.expenses >= 0 ? 'variance-positive' : 'variance-negative'}">
+                        ${safePercentage(forecastData.incomeStatement.expenses, incomeStatementActuals.expenses)}%
+                    </td>
+                </tr>
+                <tr>
+                    <td>Net Profit (Before Tax)</td>
+                    <td>$${forecastNetProfit.toFixed(2)}</td>
+                    <td>$${actualNetProfit.toFixed(2)}</td>
+                    <td class="${actualNetProfit - forecastNetProfit >= 0 ? 'variance-positive' : 'variance-negative'}">
+                        $${(actualNetProfit - forecastNetProfit).toFixed(2)}
+                    </td>
+                    <td class="${actualNetProfit - forecastNetProfit >= 0 ? 'variance-positive' : 'variance-negative'}">
+                        ${safePercentage(actualNetProfit, forecastNetProfit)}%
+                    </td>
+                </tr>
+                <tr>
+                    <td>Tax (${taxRate}%)</td>
+                    <td>$${forecastTax.toFixed(2)}</td>
+                    <td>$${actualTax.toFixed(2)}</td>
+                    <td class="${forecastTax - actualTax >= 0 ? 'variance-positive' : 'variance-negative'}">
+                        $${(forecastTax - actualTax).toFixed(2)}
+                    </td>
+                    <td class="${forecastTax - actualTax >= 0 ? 'variance-positive' : 'variance-negative'}">
+                        ${safePercentage(forecastTax, actualTax)}%
+                    </td>
+                </tr>
+                <tr>
+                    <td>Net Profit (After Tax)</td>
+                    <td>$${forecastProfitAfterTax.toFixed(2)}</td>
+                    <td>$${actualProfitAfterTax.toFixed(2)}</td>
+                    <td class="${actualProfitAfterTax - forecastProfitAfterTax >= 0 ? 'variance-positive' : 'variance-negative'}">
+                        $${(actualProfitAfterTax - forecastProfitAfterTax).toFixed(2)}
+                    </td>
+                    <td class="${actualProfitAfterTax - forecastProfitAfterTax >= 0 ? 'variance-positive' : 'variance-negative'}">
+                        ${safePercentage(actualProfitAfterTax, forecastProfitAfterTax)}%
+                    </td>
+                </tr>
+            </table>
+
+            <h3>Cash Flow Analysis</h3>
+            <table class="comparison-table">
+                <tr>
+                    <th>Category</th>
+                    <th>Forecast</th>
+                    <th>Actual</th>
+                    <th>Variance</th>
+                    <th>Variance %</th>
+                </tr>
+                <tr>
+                    <td>Total Cash Inflows</td>
+                    <td>$${forecastData.cashFlow.inflows.toFixed(2)}</td>
+                    <td>$${cashFlowActuals.inflows.toFixed(2)}</td>
+                    <td class="${cashFlowActuals.inflows - forecastData.cashFlow.inflows >= 0 ? 'variance-positive' : 'variance-negative'}">
+                        $${(cashFlowActuals.inflows - forecastData.cashFlow.inflows).toFixed(2)}
+                    </td>
+                    <td class="${cashFlowActuals.inflows - forecastData.cashFlow.inflows >= 0 ? 'variance-positive' : 'variance-negative'}">
+                        ${safePercentage(cashFlowActuals.inflows, forecastData.cashFlow.inflows)}%
+                    </td>
+                </tr>
+                <tr>
+                    <td>Total Cash Outflows</td>
+                    <td>$${forecastData.cashFlow.outflows.toFixed(2)}</td>
+                    <td>$${cashFlowActuals.outflows.toFixed(2)}</td>
+                    <td class="${forecastData.cashFlow.outflows - cashFlowActuals.outflows >= 0 ? 'variance-positive' : 'variance-negative'}">
+                        $${(forecastData.cashFlow.outflows - cashFlowActuals.outflows).toFixed(2)}
+                    </td>
+                    <td class="${forecastData.cashFlow.outflows - cashFlowActuals.outflows >= 0 ? 'variance-positive' : 'variance-negative'}">
+                        ${safePercentage(forecastData.cashFlow.outflows, cashFlowActuals.outflows)}%
+                    </td>
+                </tr>
+                <tr>
+                    <td>Net Cash Flow</td>
+                    <td>$${(forecastData.cashFlow.inflows - forecastData.cashFlow.outflows).toFixed(2)}</td>
+                    <td>$${(cashFlowActuals.inflows - cashFlowActuals.outflows).toFixed(2)}</td>
+                    <td class="${(cashFlowActuals.inflows - cashFlowActuals.outflows) - (forecastData.cashFlow.inflows - forecastData.cashFlow.outflows) >= 0 ? 'variance-positive' : 'variance-negative'}">
+                        $${((cashFlowActuals.inflows - cashFlowActuals.outflows) - (forecastData.cashFlow.inflows - forecastData.cashFlow.outflows)).toFixed(2)}
+                    </td>
+                    <td class="${(cashFlowActuals.inflows - cashFlowActuals.outflows) - (forecastData.cashFlow.inflows - forecastData.cashFlow.outflows) >= 0 ? 'variance-positive' : 'variance-negative'}">
+                        ${safePercentage((cashFlowActuals.inflows - cashFlowActuals.outflows), (forecastData.cashFlow.inflows - forecastData.cashFlow.outflows))}%
+                    </td>
+                </tr>
+            </table>
+
+            <h3>Key Performance Metrics</h3>
+            <table class="comparison-table">
+                <tr>
+                    <th>Metric</th>
+                    <th>Actual Value</th>
+                </tr>
+                <tr>
+                    <td>Gross Profit Margin</td>
+                    <td>${actualGrossProfitMargin.toFixed(2)}%</td>
+                </tr>
+                <tr>
+                    <td>Net Profit Margin</td>
+                    <td>${actualNetProfitMargin.toFixed(2)}%</td>
+                </tr>
+                <tr>
+                    <td>Expense Ratio</td>
+                    <td>${actualExpenseRatio.toFixed(2)}%</td>
+                </tr>
+            </table>`;
+
+        comparisonTables.innerHTML = html;
+        updateComparisonChart(forecastProfitAfterTax, actualProfitAfterTax);
+        
+        // Load learning outcomes data
+        loadLearningOutcomesData();
+        
+        console.log("Summary updated successfully");
+    }
+
+    // Updated comparison chart
+    function updateComparisonChart(forecastProfit, actualProfit) {
+        const ctx = document.getElementById('comparisonChart');
+        if (!ctx) return;
+
+        if (window.comparisonChart) {
+            window.comparisonChart.destroy();
+        }
+
+        window.comparisonChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Forecast', 'Actual'],
+                datasets: [{
+                    label: 'Net Profit Comparison',
+                    data: [forecastProfit, actualProfit],
+                    backgroundColor: [
+                        'rgba(54, 162, 235, 0.6)',
+                        'rgba(75, 192, 192, 0.6)'
+                    ],
+                    borderColor: [
+                        'rgb(54, 162, 235)',
+                        'rgb(75, 192, 192)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Net Profit ($)'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // UPDATED: Save learning outcomes
+    function saveLearningOutcomes() {
+        try {
+            console.log("Saving learning outcomes...");
+            
+            const outcomes = {
+                keyDecisions: document.getElementById('keyDecisionsText').value,
+                challenges: document.getElementById('challengesText').value,
+                successFactors: document.getElementById('successFactorsText').value
+            };
+            
+            FinanceToolsData.saveLearningOutcomes(outcomes);
+            console.log("Learning outcomes saved successfully");
+            
+            return true;
+        } catch (error) {
+            console.error("Error saving learning outcomes:", error);
+            return false;
+        }
+    }
+
+    // UPDATED: Load learning outcomes data
+    async function loadLearningOutcomesData() {
+        try {
+            console.log("Loading learning outcomes...");
+            
+            // First try to load from Wix DB if available
+            let outcomes = null;
+            
+            try {
+                outcomes = await FinanceToolsData.loadFromWixDB('learningOutcomes');
+            } catch (wixError) {
+                console.error('Error loading learning outcomes from Wix DB:', wixError);
+            }
+            
+            // If no Wix data, try localStorage
+            if (!outcomes) {
+                outcomes = FinanceToolsData.loadLearningOutcomes();
+            }
+            
+            if (outcomes) {
+                console.log("Found learning outcomes:", outcomes);
+                
+                if (document.getElementById('keyDecisionsText')) {
+                    document.getElementById('keyDecisionsText').value = outcomes.keyDecisions || '';
+                }
+                if (document.getElementById('challengesText')) {
+                    document.getElementById('challengesText').value = outcomes.challenges || '';
+                }
+                if (document.getElementById('successFactorsText')) {
+                    document.getElementById('successFactorsText').value = outcomes.successFactors || '';
+                }
+                
+                return true;
+            } else {
+                console.log("No learning outcomes found");
+            }
+            
+            return false;
+        } catch (error) {
+            console.error('Error loading learning outcomes:', error);
+            return false;
+        }
+    }
+
+    // Event listener setup - UPDATED
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log("Document loaded, initializing actuals/summary tools");
+        
+        // Set up tile click handlers
+        document.querySelectorAll('.tile').forEach(tile => {
+            tile.addEventListener('click', function() {
+                const toolId = this.getAttribute('data-tool');
+                if (toolId) {
+                    toggleTool(toolId);
+                }
+            });
+        });
+
+        // Initialize Wix integration
+        initWixIntegration();
+
+        // Pre-initialize tools for faster loading later
+        initializeTool('incomeStatementActualsTool');
+        initializeTool('cashFlowActualsTool');
+        
+        // For debugging - show localStorage on page load
+        console.log("Current localStorage:", {
+            forecast: localStorage.getItem('financeTools_forecastData'),
+            actuals: localStorage.getItem('financeTools_actualsData'),
+            learning: localStorage.getItem('financeTools_learningOutcomes')
+        });
+        
+        // Load learning outcomes right away
+        setTimeout(() => {
+            loadLearningOutcomesData().then(() => {
+                console.log("Initial learning outcomes load complete");
+            });
+        }, 500);
+    });
+
+    // Make necessary functions global
+    window.calculateTotals = calculateTotals;
+    window.toggleTool = toggleTool;
+    window.addRow = addRow;
+    window.removeRow = removeRow;
+    window.updateRowCategory = updateRowCategory;
+    window.loadActualsData = loadActualsData;
+    window.calculateSectionTotal = calculateSectionTotal;
+    window.saveLearningOutcomes = saveLearningOutcomes;
+    window.updateSummary = updateSummary;
+    window.initializeTool = initializeTool;
+    window.loadAllData = loadAllData;
+    
+    // Add a periodic data check to ensure data persistence
+    setInterval(() => {
+        const activeTool = document.querySelector('.actuals-tool[style*="display: block"]');
+        if (activeTool) {
+            const toolId = activeTool.id;
+            console.log(`Performing periodic save for active tool: ${toolId}`);
+            saveActualsData();
+        }
+        
+        if (document.querySelector('#summaryTool[style*="display: block"]')) {
+            console.log("Updating summary periodically");
+            updateSummary();
+            saveLearningOutcomes();
+        }
+    }, 60000); // Check every minute
+})();
+</script>
+</body>
+</html>
