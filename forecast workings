@@ -264,6 +264,7 @@
                     lastUpdated: new Date().toISOString()
                 };
                 
+                console.log("Saving forecast data:", data);
                 localStorage.setItem(this.keys.FORECAST_DATA, JSON.stringify(data));
                 
                 // Try to save to Wix DB if available
@@ -318,9 +319,12 @@
                 const localData = localStorage.getItem(this.keys.FORECAST_DATA);
                 
                 if (localData) {
-                    return JSON.parse(localData);
+                    const parsed = JSON.parse(localData);
+                    console.log("Loaded forecast data from localStorage:", parsed);
+                    return parsed;
                 }
                 
+                console.log("No forecast data found in localStorage");
                 return null;
             } catch (error) {
                 console.error('Error loading forecast data:', error);
@@ -364,6 +368,7 @@
         saveToWixDB: async function(collection, data) {
             // Check if wix is available
             if (typeof wix === 'undefined' || !wix.data) {
+                console.log("Wix APIs not available, skipping DB save");
                 return false;
             }
             
@@ -389,8 +394,10 @@
                         _id: existingData.items[0]._id,
                         ...dataWithUserId
                     });
+                    console.log(`Updated existing ${collection} record in Wix DB`);
                 } else {
                     await wix.data.insert(collection, dataWithUserId);
+                    console.log(`Inserted new ${collection} record in Wix DB`);
                 }
                 
                 return true;
@@ -404,6 +411,7 @@
         loadFromWixDB: async function(collection) {
             // Check if wix is available
             if (typeof wix === 'undefined' || !wix.data) {
+                console.log("Wix APIs not available, skipping DB load");
                 return null;
             }
             
@@ -419,9 +427,11 @@
                     .find();
                 
                 if (savedData.items.length === 0) {
+                    console.log(`No ${collection} records found in Wix DB`);
                     return null;
                 }
                 
+                console.log(`Loaded ${collection} from Wix DB:`, savedData.items[0]);
                 return savedData.items[0];
             } catch (error) {
                 console.error(`Error loading from Wix DB (${collection}):`, error);
@@ -453,11 +463,14 @@
             } catch (error) {
                 console.warn('Error initializing Wix integration:', error);
             }
+        } else {
+            console.log("Wix APIs not detected");
         }
     }
 
     // Load all data from storage (both localStorage and Wix if available)
     async function loadAllData() {
+        console.log("Loading all data");
         // Load forecast data
         await loadSavedData('incomeStatementTool');
         await loadSavedData('cashFlowTool');
@@ -515,6 +528,8 @@
         // UPDATED FUNCTION: Save forecast data
         async function saveForecastData() {
             try {
+                console.log("Saving forecast data...");
+                
                 const incomeStatementData = {
                     revenue: calculateSectionTotal('incomeStatementTool', 'Revenue'),
                     expenses: calculateSectionTotal('incomeStatementTool', 'Expenses'),
@@ -530,6 +545,7 @@
                 // Save using the unified storage system
                 FinanceToolsData.saveForecastData(incomeStatementData, cashFlowData);
                 
+                console.log("Forecast data saved successfully");
             } catch (error) {
                 console.error('Error saving forecast data:', error);
             }
@@ -538,14 +554,26 @@
         // UPDATED FUNCTION: Load saved data
         async function loadSavedData(toolId) {
             try {
+                console.log(`Loading saved data for ${toolId}...`);
+                
+                // Initialize the table if it doesn't exist
+                if (!document.getElementById(tools[toolId].table) || 
+                    document.getElementById(tools[toolId].table).rows.length === 0) {
+                    initializeTool(toolId);
+                }
+                
                 // First try to load from Wix DB if available
                 let toolData = null;
-                const wixData = await FinanceToolsData.loadFromWixDB('forecastData');
                 
-                if (wixData) {
-                    toolData = toolId === 'incomeStatementTool' 
-                        ? wixData.incomeStatement 
-                        : wixData.cashFlow;
+                try {
+                    const wixData = await FinanceToolsData.loadFromWixDB('forecastData');
+                    if (wixData) {
+                        toolData = toolId === 'incomeStatementTool' 
+                            ? wixData.incomeStatement 
+                            : wixData.cashFlow;
+                    }
+                } catch (wixError) {
+                    console.error('Error loading from Wix DB:', wixError);
                 }
                 
                 // If no Wix data, try localStorage
@@ -560,6 +588,8 @@
                 
                 // If we have data, populate the inputs
                 if (toolData && toolData.inputs) {
+                    console.log(`Found data for ${toolId}:`, toolData);
+                    
                     Object.entries(toolData.inputs).forEach(([section, rows]) => {
                         Object.entries(rows).forEach(([row, values]) => {
                             values.forEach((value, index) => {
@@ -568,6 +598,9 @@
                                 );
                                 if (input) {
                                     input.value = value;
+                                    console.log(`Set ${toolId} input [${section}][${row}][${index}] = ${value}`);
+                                } else {
+                                    console.warn(`Input not found for ${toolId} [${section}][${row}][${index}]`);
                                 }
                             });
                         });
@@ -575,6 +608,8 @@
                     
                     calculateTotals(toolId);
                     return true;
+                } else {
+                    console.log(`No data found for ${toolId}`);
                 }
                 
                 return false;
@@ -590,9 +625,13 @@
                 const tool = document.getElementById(key);
                 if (tool) {
                     if (key === toolId) {
-                        tool.style.display = tool.style.display === 'none' || tool.style.display === '' ? 'block' : 'none';
-                        if (tool.style.display === 'block') {
-                            initializeTool(key);
+                        const wasHidden = tool.style.display === 'none' || tool.style.display === '';
+                        tool.style.display = wasHidden ? 'block' : 'none';
+                        
+                        if (wasHidden) {
+                            console.log(`Showing ${toolId} and loading data...`);
+                            // Always load saved data when showing a tool
+                            loadSavedData(toolId);
                         }
                     } else {
                         tool.style.display = 'none';
@@ -642,10 +681,19 @@
             calculateTotals(toolId);
         }
 
+        // UPDATED: Initialize tool
         function initializeTool(toolId) {
+            console.log(`Initializing ${toolId}...`);
             const tool = tools[toolId];
             const table = document.getElementById(tool.table);
-            if (table && table.rows.length === 0) {
+            
+            if (!table) {
+                console.error(`Table not found for ${toolId}`);
+                return;
+            }
+            
+            if (table.rows.length === 0) {
+                console.log(`Creating table structure for ${toolId}`);
                 let html = `
                     <tr>
                         <th>Category</th>
@@ -680,9 +728,7 @@
                     </tr>`;
 
                 table.innerHTML = html;
-                loadSavedData(toolId);
             }
-            calculateTotals(toolId);
         }
 
         function addRow(toolId, section) {
@@ -717,8 +763,16 @@
             return totalElement ? parseFloat(totalElement.textContent.replace('$', '')) || 0 : 0;
         }
 
+        // UPDATED: Calculate totals function
         function calculateTotals(toolId) {
+            console.log(`Calculating totals for ${toolId}...`);
+            
             const tool = tools[toolId];
+            if (!tool) {
+                console.error(`Tool not found: ${toolId}`);
+                return;
+            }
+            
             const totals = {};
             tool.sections.forEach(section => {
                 totals[section.name] = Array(months.length).fill(0);
@@ -756,8 +810,7 @@
                     totalElement.textContent = `$${sectionTotal.toFixed(2)}`;
                 }
             });
-
-            const taxRateInput = document.getElementById(`${toolId}-tax-rate`);
+const taxRateInput = document.getElementById(`${toolId}-tax-rate`);
             const taxRate = (parseFloat(taxRateInput?.value) || 25) / 100;
 
             const netTotals = Array(months.length).fill(0);
@@ -782,7 +835,10 @@
 
             updateChart(toolId, netTotals);
             updateAnalysis(toolId, totals, netTotals);
+            
+            // Save data whenever calculations are updated
             saveForecastData();
+            console.log(`${toolId} calculations completed and data saved`);
         }
 
         function updateChart(toolId, data) {
@@ -815,7 +871,7 @@
                                 text: 'Amount ($)'
                             }
                         }
-                        }
+                    }
                 }
             });
         }
@@ -899,11 +955,15 @@
             `;
         }
 
-        // Event listener setup
+        // Event listener setup - UPDATED
         document.addEventListener('DOMContentLoaded', function() {
+            console.log("Document loaded, initializing finance tools");
+            
+            // Set up tile click handlers
             document.getElementById('incomeStatementTile').addEventListener('click', function() {
                 toggleTool('incomeStatementTool');
             });
+            
             document.getElementById('cashFlowTile').addEventListener('click', function() {
                 toggleTool('cashFlowTool');
             });
@@ -911,8 +971,22 @@
             // Initialize Wix integration
             initWixIntegration();
 
-            // Load all data on page load
-            loadAllData();
+            // Pre-initialize tools for faster loading later
+            initializeTool('incomeStatementTool');
+            initializeTool('cashFlowTool');
+            
+            // Try to load data for the first tool right away
+            setTimeout(() => {
+                loadSavedData('incomeStatementTool').then(() => {
+                    console.log("Initial load complete");
+                });
+            }, 500);
+            
+            // For debugging - show localStorage on page load
+            console.log("Current localStorage:", {
+                forecast: localStorage.getItem('financeTools_forecastData'),
+                actuals: localStorage.getItem('financeTools_actualsData'),
+            });
         });
 
         // Make necessary functions global
@@ -924,7 +998,20 @@
         window.updateRowCategory = updateRowCategory;
         window.loadSavedData = loadSavedData;
         window.calculateSectionTotal = calculateSectionTotal;
+        window.saveForecastData = saveForecastData;
+        window.loadAllData = loadAllData;
+        window.initializeTool = initializeTool;
+        
+        // Add a periodic data check to ensure data persistence
+        setInterval(() => {
+            const activeTool = document.querySelector('.forecast-tool[style*="display: block"]');
+            if (activeTool) {
+                const toolId = activeTool.id;
+                console.log(`Performing periodic save for active tool: ${toolId}`);
+                saveForecastData();
+            }
+        }, 60000); // Check every minute
     })();
-    </script>
+</script>
 </body>
 </html>
