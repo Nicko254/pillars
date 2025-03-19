@@ -181,6 +181,29 @@
             z-index: 1000;
             display: none;
         }
+        #debugToggle {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background-color: #6e8efb;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            z-index: 999;
+        }
+        .saving-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+            z-index: 1000;
+        }
     </style>
 </head>
 <body>
@@ -276,9 +299,15 @@
         </div>
     </div>
     
+    <div id="savingIndicator" class="saving-indicator">Saving data...</div>
+    
+    <button id="debugToggle" onclick="toggleDebugPanel()">Debug</button>
+    
     <div id="debugPanel" class="debug-panel">
         <div id="debugOutput"></div>
         <button onclick="diagnoseDataIssues()">Run Diagnostics</button>
+        <button onclick="forceReload()">Force Reload</button>
+        <button onclick="toggleDebugPanel()">Close</button>
     </div>
     
 <script>
@@ -291,9 +320,11 @@ const FinanceToolsData = {
         LEARNING_OUTCOMES: 'financeTools_learningOutcomes'
     },
     
-    // Save forecast data
-    saveForecastData: function(incomeStatementData, cashFlowData) {
+    // Save forecast data with Wix CMS priority
+    saveForecastData: async function(incomeStatementData, cashFlowData) {
         try {
+            showSavingIndicator();
+            
             const data = {
                 incomeStatement: incomeStatementData,
                 cashFlow: cashFlowData,
@@ -301,21 +332,30 @@ const FinanceToolsData = {
             };
             
             console.log("Saving forecast data:", data);
-            localStorage.setItem(this.keys.FORECAST_DATA, JSON.stringify(data));
             
-            // Try to save to Wix DB if available
-            this.saveToWixDB('forecastData', data);
+            // Try to save to Wix DB first
+            const wixSaved = await this.saveToWixDB('forecastData', data);
             
+            // Fallback to localStorage if Wix save failed
+            if (!wixSaved) {
+                localStorage.setItem(this.keys.FORECAST_DATA, JSON.stringify(data));
+                console.log("Saved to localStorage as fallback");
+            }
+            
+            hideSavingIndicator();
             return true;
         } catch (error) {
             console.error('Error saving forecast data:', error);
+            hideSavingIndicator();
             return false;
         }
     },
     
-    // Save actuals data
-    saveActualsData: function(incomeStatementData, cashFlowData) {
+    // Save actuals data with Wix CMS priority
+    saveActualsData: async function(incomeStatementData, cashFlowData) {
         try {
+            showSavingIndicator();
+            
             const data = {
                 incomeStatement: incomeStatementData,
                 cashFlow: cashFlowData,
@@ -323,46 +363,70 @@ const FinanceToolsData = {
             };
             
             console.log("Saving actuals data:", data);
-            localStorage.setItem(this.keys.ACTUALS_DATA, JSON.stringify(data));
             
-            // Try to save to Wix DB if available
-            this.saveToWixDB('actualsData', data);
+            // Try to save to Wix DB first
+            const wixSaved = await this.saveToWixDB('actualsData', data);
+            console.log("Wix save result:", wixSaved);
             
+            // Fallback to localStorage if Wix save failed
+            if (!wixSaved) {
+                localStorage.setItem(this.keys.ACTUALS_DATA, JSON.stringify(data));
+                console.log("Saved to localStorage as fallback");
+            }
+            
+            hideSavingIndicator();
             return true;
         } catch (error) {
             console.error('Error saving actuals data:', error);
+            hideSavingIndicator();
             return false;
         }
     },
     
-    // Save learning outcomes
-    saveLearningOutcomes: function(outcomes) {
+    // Save learning outcomes with Wix CMS priority
+    saveLearningOutcomes: async function(outcomes) {
         try {
+            showSavingIndicator();
+            
             console.log("Saving learning outcomes:", outcomes);
-            localStorage.setItem(this.keys.LEARNING_OUTCOMES, JSON.stringify(outcomes));
             
-            // Try to save to Wix DB if available
-            this.saveToWixDB('learningOutcomes', outcomes);
+            // Try to save to Wix DB first
+            const wixSaved = await this.saveToWixDB('learningOutcomes', outcomes);
             
+            // Fallback to localStorage if Wix save failed
+            if (!wixSaved) {
+                localStorage.setItem(this.keys.LEARNING_OUTCOMES, JSON.stringify(outcomes));
+                console.log("Saved to localStorage as fallback");
+            }
+            
+            hideSavingIndicator();
             return true;
         } catch (error) {
             console.error('Error saving learning outcomes:', error);
+            hideSavingIndicator();
             return false;
         }
     },
     
-    // Load forecast data
-    loadForecastData: function() {
+    // Load forecast data with Wix CMS priority
+    loadForecastData: async function() {
         try {
-            const localData = localStorage.getItem(this.keys.FORECAST_DATA);
+            // Try Wix DB first
+            const wixData = await this.loadFromWixDB('forecastData');
+            if (wixData) {
+                console.log("Loaded forecast data from Wix CMS:", wixData);
+                return wixData;
+            }
             
+            // Fallback to localStorage
+            const localData = localStorage.getItem(this.keys.FORECAST_DATA);
             if (localData) {
                 const parsed = JSON.parse(localData);
-                console.log("Loaded forecast data from localStorage:", parsed);
+                console.log("Loaded forecast data from localStorage (fallback):", parsed);
                 return parsed;
             }
             
-            console.log("No forecast data found in localStorage");
+            console.log("No forecast data found");
             return null;
         } catch (error) {
             console.error('Error loading forecast data:', error);
@@ -370,18 +434,25 @@ const FinanceToolsData = {
         }
     },
     
-    // Load actuals data
-    loadActualsData: function() {
+    // Load actuals data with Wix CMS priority
+    loadActualsData: async function() {
         try {
-            const localData = localStorage.getItem(this.keys.ACTUALS_DATA);
+            // Try Wix DB first
+            const wixData = await this.loadFromWixDB('actualsData');
+            if (wixData) {
+                console.log("Loaded actuals data from Wix CMS:", wixData);
+                return wixData;
+            }
             
+            // Fallback to localStorage
+            const localData = localStorage.getItem(this.keys.ACTUALS_DATA);
             if (localData) {
                 const parsed = JSON.parse(localData);
-                console.log("Loaded actuals data from localStorage:", parsed);
+                console.log("Loaded actuals data from localStorage (fallback):", parsed);
                 return parsed;
             }
             
-            console.log("No actuals data found in localStorage");
+            console.log("No actuals data found");
             return null;
         } catch (error) {
             console.error('Error loading actuals data:', error);
@@ -389,14 +460,21 @@ const FinanceToolsData = {
         }
     },
     
-    // Load learning outcomes
-    loadLearningOutcomes: function() {
+    // Load learning outcomes with Wix CMS priority
+    loadLearningOutcomes: async function() {
         try {
-            const localData = localStorage.getItem(this.keys.LEARNING_OUTCOMES);
+            // Try Wix DB first
+            const wixData = await this.loadFromWixDB('learningOutcomes');
+            if (wixData) {
+                console.log("Loaded learning outcomes from Wix CMS:", wixData);
+                return wixData;
+            }
             
+            // Fallback to localStorage
+            const localData = localStorage.getItem(this.keys.LEARNING_OUTCOMES);
             if (localData) {
                 const parsed = JSON.parse(localData);
-                console.log("Loaded learning outcomes from localStorage:", parsed);
+                console.log("Loaded learning outcomes from localStorage (fallback):", parsed);
                 return parsed;
             }
             
@@ -407,85 +485,282 @@ const FinanceToolsData = {
         }
     },
     
-    // Save to Wix DB if available
+    // Save to Wix DB with improved error handling and compatibility
     saveToWixDB: async function(collection, data) {
+        console.log(`Attempting to save to Wix CMS collection: ${collection}`);
+        
         // Check if wix is available
-        if (typeof wix === 'undefined' || !wix.data) {
+        if (typeof wix === 'undefined') {
             console.log("Wix APIs not available, skipping DB save");
+            this.logToDebug(`Wix API not detected, can't save to ${collection}`);
             return false;
         }
-        
+
         try {
-            const user = await wix.users.currentUser;
-            if (!user) {
-                console.warn('No user logged in, skipping Wix DB save');
+            // Get current user - try multiple methods for compatibility
+            let user = null;
+            
+            try {
+                // First try the current member API
+                if (wix.currentMember && wix.currentMember.getMember) {
+                    user = await wix.currentMember.getMember();
+                    console.log("Got user from currentMember.getMember():", user);
+                }
+                // Then try the members API
+                else if (wix.members && wix.members.currentMember) {
+                    user = await wix.members.currentMember;
+                    console.log("Got user from members.currentMember:", user);
+                }
+                // Then try the deprecated user API
+                else if (wix.user && wix.user.currentUser) {
+                    user = await wix.user.currentUser;
+                    console.log("Got user from user.currentUser (deprecated):", user);
+                }
+                // For the editor environment
+                else if (wix.user && wix.user.loggedIn && wix.user.id) {
+                    user = { id: wix.user.id };
+                    console.log("Got user ID from user.id in editor:", user);
+                }
+                else {
+                    console.warn("Couldn't get current user through standard methods");
+                    // Create a fallback user ID for testing in development
+                    user = { id: 'development_user_' + new Date().toISOString().slice(0,10) };
+                    console.log("Using fallback development user:", user);
+                }
+            } catch (userError) {
+                console.warn("Error getting current user:", userError);
+                // Create a development user for testing
+                user = { id: 'development_user_' + new Date().toISOString().slice(0,10) };
+                console.log("Using fallback development user after error:", user);
+            }
+
+            if (!user || !user.id) {
+                console.warn('No user ID available, cannot save to Wix CMS');
+                this.logToDebug("No user ID available for saving to Wix CMS");
                 return false;
             }
-            
+
             const dataWithUserId = {
                 ...data,
                 userId: user.id
             };
-            
-            // Check if record exists
-            const existingData = await wix.data.query(collection)
-                .eq('userId', user.id)
-                .find();
-            
-            if (existingData.items.length > 0) {
-                await wix.data.update(collection, {
-                    _id: existingData.items[0]._id,
-                    ...dataWithUserId
-                });
-                console.log(`Updated existing ${collection} record in Wix DB`);
-            } else {
-                await wix.data.insert(collection, dataWithUserId);
-                console.log(`Inserted new ${collection} record in Wix DB`);
+
+            // Try different Wix data API versions
+            try {
+                // Check for the wix-data API
+                if (wix.data) {
+                    // Check if collection exists & is accessible
+                    try {
+                        // Query to check if we can access the collection
+                        const testQuery = await wix.data.query(collection).limit(1).find();
+                        console.log(`Successfully accessed ${collection} collection:`, testQuery);
+                    } catch (collectionError) {
+                        console.error(`Error accessing ${collection} collection:`, collectionError);
+                        this.logToDebug(`Cannot access ${collection} collection. Make sure it exists in Wix CMS.`);
+                        return false;
+                    }
+
+                    // Check if record exists for this user
+                    const existingData = await wix.data.query(collection)
+                        .eq('userId', user.id)
+                        .find();
+
+                    if (existingData && existingData.items && existingData.items.length > 0) {
+                        console.log(`Found existing record for user in ${collection}:`, existingData.items[0]);
+                        await wix.data.update(collection, {
+                            _id: existingData.items[0]._id,
+                            ...dataWithUserId
+                        });
+                        console.log(`Updated existing ${collection} record in Wix DB`);
+                    } else {
+                        console.log(`No existing record found for user in ${collection}, creating new one`);
+                        await wix.data.insert(collection, dataWithUserId);
+                        console.log(`Inserted new ${collection} record in Wix DB`);
+                    }
+                    
+                    return true;
+                } else {
+                    console.warn('Wix data API not available');
+                    this.logToDebug("Wix data API not found");
+                    return false;
+                }
+            } catch (error) {
+                console.error(`Error saving to Wix DB (${collection}):`, error);
+                this.logToDebug(`Error saving to ${collection}: ${error.message}`);
+                return false;
             }
-            
-            return true;
         } catch (error) {
-            console.error(`Error saving to Wix DB (${collection}):`, error);
+            console.error(`Error in Wix DB save operation (${collection}):`, error);
+            this.logToDebug(`General error with Wix DB: ${error.message}`);
             return false;
         }
     },
     
-    // Load from Wix DB if available
+    // Load from Wix DB with improved error handling and compatibility
     loadFromWixDB: async function(collection) {
+        console.log(`Attempting to load from Wix CMS collection: ${collection}`);
+        
         // Check if wix is available
-        if (typeof wix === 'undefined' || !wix.data) {
+        if (typeof wix === 'undefined') {
             console.log("Wix APIs not available, skipping DB load");
+            this.logToDebug(`Wix API not detected, can't load from ${collection}`);
             return null;
         }
-        
+
         try {
-            const user = await wix.users.currentUser;
-            if (!user) {
-                console.warn('No user logged in, skipping Wix DB load');
+            // Get current user - try multiple methods for compatibility
+            let user = null;
+            
+            try {
+                // First try the current member API
+                if (wix.currentMember && wix.currentMember.getMember) {
+                    user = await wix.currentMember.getMember();
+                    console.log("Got user from currentMember.getMember():", user);
+                }
+                // Then try the members API
+                else if (wix.members && wix.members.currentMember) {
+                    user = await wix.members.currentMember;
+                    console.log("Got user from members.currentMember:", user);
+                }
+                // Then try the deprecated user API
+                else if (wix.user && wix.user.currentUser) {
+                    user = await wix.user.currentUser;
+                    console.log("Got user from user.currentUser (deprecated):", user);
+                }
+                // For the editor environment
+                else if (wix.user && wix.user.loggedIn && wix.user.id) {
+                    user = { id: wix.user.id };
+                    console.log("Got user ID from user.id in editor:", user);
+                }
+                else {
+                    console.warn("Couldn't get current user through standard methods");
+                    // Create a fallback user ID for testing in development
+                    user = { id: 'development_user_' + new Date().toISOString().slice(0,10) };
+                    console.log("Using fallback development user:", user);
+                }
+            } catch (userError) {
+                console.warn("Error getting current user:", userError);
+                // Create a development user for testing
+                user = { id: 'development_user_' + new Date().toISOString().slice(0,10) };
+                console.log("Using fallback development user after error:", user);
+            }
+
+            if (!user || !user.id) {
+                console.warn('No user ID available, cannot load from Wix CMS');
+                this.logToDebug("No user ID available for loading from Wix CMS");
                 return null;
             }
-            
-            const savedData = await wix.data.query(collection)
-                .eq('userId', user.id)
-                .find();
-            
-            if (savedData.items.length === 0) {
-                console.log(`No ${collection} records found in Wix DB`);
+
+            // Try different Wix data API versions
+            try {
+                // Check for the wix-data API
+                if (wix.data) {
+                    // Check if collection exists & is accessible
+                    try {
+                        // Query to check if we can access the collection
+                        const testQuery = await wix.data.query(collection).limit(1).find();
+                        console.log(`Successfully accessed ${collection} collection:`, testQuery);
+                    } catch (collectionError) {
+                        console.error(`Error accessing ${collection} collection:`, collectionError);
+                        this.logToDebug(`Cannot access ${collection} collection. Make sure it exists in Wix CMS.`);
+                        return null;
+                    }
+
+                    // Find record for this user
+                    const userData = await wix.data.query(collection)
+                        .eq('userId', user.id)
+                        .find();
+
+                    if (userData && userData.items && userData.items.length > 0) {
+                        console.log(`Found record for user in ${collection}:`, userData.items[0]);
+                        return userData.items[0];
+                    } else {
+                        console.log(`No record found for user in ${collection}`);
+                        return null;
+                    }
+                } else {
+                    console.warn('Wix data API not available');
+                    this.logToDebug("Wix data API not found");
+                    return null;
+                }
+            } catch (error) {
+                console.error(`Error loading from Wix DB (${collection}):`, error);
+                this.logToDebug(`Error loading from ${collection}: ${error.message}`);
                 return null;
             }
-            
-            console.log(`Loaded ${collection} from Wix DB:`, savedData.items[0]);
-            return savedData.items[0];
         } catch (error) {
-            console.error(`Error loading from Wix DB (${collection}):`, error);
+            console.error(`Error in Wix DB load operation (${collection}):`, error);
+            this.logToDebug(`General error with Wix DB: ${error.message}`);
             return null;
+        }
+    },
+    
+    // Helper function to append to debug panel
+    logToDebug: function(message) {
+        const debugOutput = document.getElementById('debugOutput');
+        if (debugOutput) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logItem = document.createElement('div');
+            logItem.textContent = `${timestamp}: ${message}`;
+            debugOutput.appendChild(logItem);
+            
+            // Scroll to bottom
+            debugOutput.scrollTop = debugOutput.scrollHeight;
         }
     }
 };
 
+// Helper functions for saving indicator
+function showSavingIndicator() {
+    const indicator = document.getElementById('savingIndicator');
+    if (indicator) {
+        indicator.style.display = 'block';
+    }
+}
+
+function hideSavingIndicator() {
+    const indicator = document.getElementById('savingIndicator');
+    if (indicator) {
+        setTimeout(() => {
+            indicator.style.display = 'none';
+        }, 500);
+    }
+}
+
+// Toggle debug panel
+function toggleDebugPanel() {
+    const debugPanel = document.getElementById('debugPanel');
+    if (debugPanel) {
+        if (debugPanel.style.display === 'block') {
+            debugPanel.style.display = 'none';
+        } else {
+            debugPanel.style.display = 'block';
+            diagnoseDataIssues();
+        }
+    }
+}
+
+// Force reload data
+function forceReload() {
+    loadAllData(true);
+}
+
 // Add diagnostic function to help debug issues
 function diagnoseDataIssues() {
     console.log("=== FINANCE TOOLS DIAGNOSTIC ===");
+    FinanceToolsData.logToDebug("Running diagnostic tests...");
+    
+    // Check localStorage 
+    try {
+        localStorage.setItem('test_key', 'test_value');
+        console.log('localStorage test: ' + localStorage.getItem('test_key'));
+        localStorage.removeItem('test_key');
+        console.log('localStorage works!');
+        FinanceToolsData.logToDebug("localStorage: ✓ Working");
+    } catch (e) {
+        console.error('localStorage not working!', e);
+        FinanceToolsData.logToDebug("localStorage: ✗ Error - " + e.message);
+    }
     
     // Check localStorage data
     const forecastData = localStorage.getItem('financeTools_forecastData');
@@ -498,23 +773,81 @@ function diagnoseDataIssues() {
     if (document.getElementById('incomeStatementActualsTool')) {
         console.log("Income Statement Actuals Revenue:", calculateSectionTotal('incomeStatementActualsTool', 'Revenue'));
         console.log("Income Statement Actuals Expenses:", calculateSectionTotal('incomeStatementActualsTool', 'Expenses'));
+        FinanceToolsData.logToDebug(`Income Statement Revenue: $${calculateSectionTotal('incomeStatementActualsTool', 'Revenue')}`);
+        FinanceToolsData.logToDebug(`Income Statement Expenses: $${calculateSectionTotal('incomeStatementActualsTool', 'Expenses')}`);
     }
     
     if (document.getElementById('cashFlowActualsTool')) {
         console.log("Cash Flow Actuals Inflows:", calculateSectionTotal('cashFlowActualsTool', 'Cash Inflows'));
         console.log("Cash Flow Actuals Outflows:", calculateSectionTotal('cashFlowActualsTool', 'Cash Outflows'));
+        FinanceToolsData.logToDebug(`Cash Flow Inflows: $${calculateSectionTotal('cashFlowActualsTool', 'Cash Inflows')}`);
+        FinanceToolsData.logToDebug(`Cash Flow Outflows: $${calculateSectionTotal('cashFlowActualsTool', 'Cash Outflows')}`);
     }
     
     // Check Wix connections
-    console.log("Wix API available:", typeof wix !== 'undefined' && !!wix.data);
+    const wixAvailable = typeof wix !== 'undefined';
+    const wixDataAvailable = wixAvailable && !!wix.data;
+    console.log("Wix API available:", wixAvailable);
+    console.log("Wix Data API available:", wixDataAvailable);
+    
+    FinanceToolsData.logToDebug(`Wix API: ${wixAvailable ? "✓ Available" : "✗ Not available"}`);
+    FinanceToolsData.logToDebug(`Wix Data API: ${wixDataAvailable ? "✓ Available" : "✗ Not available"}`);
+    
+    if (wixAvailable) {
+        // Check Wix version
+        const wixVersion = wix.version || "Unknown";
+        console.log("Wix version:", wixVersion);
+        FinanceToolsData.logToDebug(`Wix version: ${wixVersion}`);
+        
+        // Check if collections exist
+        if (wixDataAvailable) {
+            try {
+                wix.data.query('actualsData').limit(1).find()
+                    .then(result => {
+                        console.log("actualsData collection accessible:", result);
+                        FinanceToolsData.logToDebug("actualsData collection: ✓ Accessible");
+                    })
+                    .catch(error => {
+                        console.error("Error accessing actualsData collection:", error);
+                        FinanceToolsData.logToDebug("actualsData collection: ✗ Error - " + error.message);
+                    });
+                
+                wix.data.query('forecastData').limit(1).find()
+                    .then(result => {
+                        console.log("forecastData collection accessible:", result);
+                        FinanceToolsData.logToDebug("forecastData collection: ✓ Accessible");
+                    })
+                    .catch(error => {
+                        console.error("Error accessing forecastData collection:", error);
+                        FinanceToolsData.logToDebug("forecastData collection: ✗ Error - " + error.message);
+                    });
+                
+                wix.data.query('learningOutcomes').limit(1).find()
+                    .then(result => {
+                        console.log("learningOutcomes collection accessible:", result);
+                        FinanceToolsData.logToDebug("learningOutcomes collection: ✓ Accessible");
+                    })
+                    .catch(error => {
+                        console.error("Error accessing learningOutcomes collection:", error);
+                        FinanceToolsData.logToDebug("learningOutcomes collection: ✗ Error - " + error.message);
+                    });
+            } catch (error) {
+                console.error("Error testing collections:", error);
+                FinanceToolsData.logToDebug("Collection test error: " + error.message);
+            }
+        }
+    }
     
     // Update debug panel
     const debugOutput = document.getElementById('debugOutput');
     if (debugOutput) {
-        debugOutput.innerHTML = `
-            <p>Forecast data: ${forecastData ? "FOUND" : "MISSING"}</p>
-            <p>Actuals data: ${actualsData ? "FOUND" : "MISSING"}</p>
-            <p>Wix API: ${typeof wix !== 'undefined' && !!wix.data ? "AVAILABLE" : "UNAVAILABLE"}</p>
+        debugOutput.innerHTML += `
+            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ccc;">
+                <p>Forecast data: ${forecastData ? "FOUND" : "MISSING"}</p>
+                <p>Actuals data: ${actualsData ? "FOUND" : "MISSING"}</p>
+                <p>Wix API: ${wixAvailable ? "AVAILABLE" : "UNAVAILABLE"}</p>
+                <p>Wix Data API: ${wixDataAvailable ? "AVAILABLE" : "UNAVAILABLE"}</p>
+            </div>
         `;
         document.getElementById('debugPanel').style.display = 'block';
     }
@@ -532,52 +865,120 @@ function attachInputSaveHandlers() {
         
         newInput.addEventListener('change', function() {
             console.log(`Value changed in ${this.dataset.tool}, saving data...`);
-            setTimeout(() => saveActualsData(), 100);
+            saveActualsData();
         });
         
         // Also attach blur handler for additional saving point
         newInput.addEventListener('blur', function() {
             console.log(`Input blur in ${this.dataset.tool}, saving data...`);
-            setTimeout(() => saveActualsData(), 100);
+            saveActualsData();
         });
     });
+    
+    console.log(`Attached save handlers to ${document.querySelectorAll('.actuals-input').length} inputs`);
+    FinanceToolsData.logToDebug(`Input save handlers attached to ${document.querySelectorAll('.actuals-input').length} inputs`);
 }
 
-// Initialize Wix if it's available
-function initWixIntegration() {
+// Initialize Wix environment
+function initWixEnvironment() {
+    console.log("Initializing Wix environment...");
+    FinanceToolsData.logToDebug("Initializing Wix environment...");
+    
+    // Add global debug function
+    window.showFinanceDebug = function() {
+        document.getElementById('debugPanel').style.display = 'block';
+        diagnoseDataIssues();
+    };
+    
+    // Check Wix context
     if (typeof wix !== 'undefined') {
+        console.log("Detected Wix environment");
+        FinanceToolsData.logToDebug("Wix environment detected");
+        
+        // Check if we're in the Wix editor
+        const isEditor = wix.window && wix.window.rendering && wix.window.rendering.env === "editor";
+        if (isEditor) {
+            console.log("Running in Wix Editor - some features may be limited");
+            FinanceToolsData.logToDebug("Running in Wix Editor - some features may be limited");
+        }
+        
+        // Initialize appropriate Wix API based on environment
         try {
-            // Listen for user login events
-            wix.users.onLogin((user) => {
-                console.log('User logged in, refreshing data');
-                loadAllData();
-            });
+            // Create a user detection function
+            const setupUserChangeDetection = () => {
+                console.log("Setting up user change detection");
+                
+                // Try modern API
+                if (wix.auth && wix.auth.onLogin) {
+                    wix.auth.onLogin((user) => {
+                        console.log('User logged in via auth.onLogin:', user);
+                        FinanceToolsData.logToDebug("User logged in, refreshing data");
+                        loadAllData(true);
+                    });
+                    console.log("Set up auth.onLogin handler");
+                }
+                // Try members API
+                else if (wix.members && wix.members.onLogin) {
+                    wix.members.onLogin((member) => {
+                        console.log('Member logged in via members.onLogin:', member);
+                        FinanceToolsData.logToDebug("Member logged in, refreshing data");
+                        loadAllData(true);
+                    });
+                    console.log("Set up members.onLogin handler");
+                }
+                // Try events API
+                else if (wix.events && wix.events.on) {
+                    wix.events.on('memberLoggedIn', (member) => {
+                        console.log('Member logged in via events.on memberLoggedIn:', member);
+                        FinanceToolsData.logToDebug("Member logged in event, refreshing data");
+                        loadAllData(true);
+                    });
+                    console.log("Set up events.on memberLoggedIn handler");
+                }
+                // Try older user API
+                else if (wix.user && wix.user.onLogin) {
+                    wix.user.onLogin((user) => {
+                        console.log('User logged in via user.onLogin:', user);
+                        FinanceToolsData.logToDebug("User logged in (old API), refreshing data");
+                        loadAllData(true);
+                    });
+                    console.log("Set up user.onLogin handler");
+                }
+                else {
+                    console.log("No suitable login event handler API found");
+                    FinanceToolsData.logToDebug("No suitable login event handlers found");
+                }
+            };
             
-            // Check if user is already logged in
-            wix.users.currentUser
-                .then(user => {
-                    if (user) {
-                        console.log('User already logged in');
-                    }
-                })
-                .catch(error => {
-                    console.warn('Error checking current user:', error);
-                });
-        } catch (error) {
-            console.warn('Error initializing Wix integration:', error);
+            // Call the setup function
+            setupUserChangeDetection();
+            
+            // Check current user state
+            if (wix.user && wix.user.loggedIn) {
+                console.log("User is already logged in according to wix.user");
+                FinanceToolsData.logToDebug("User is already logged in");
+            }
+            
+            console.log("Wix event handlers installed");
+            FinanceToolsData.logToDebug("Wix event handlers installed");
+        } catch (e) {
+            console.error("Error setting up Wix event handlers:", e);
+            FinanceToolsData.logToDebug("Error setting up Wix event handlers: " + e.message);
         }
     } else {
-        console.log("Wix APIs not detected");
+        console.log("Not running in Wix environment");
+        FinanceToolsData.logToDebug("Not running in Wix environment");
     }
 }
 
-// Load all data from storage (both localStorage and Wix if available)
-async function loadAllData() {
-    console.log("Loading all data for actuals/grow tools");
+// Load all data from storage (both Wix CMS and localStorage as fallback)
+async function loadAllData(forceRefresh = false) {
+    console.log("Loading all data for actuals/grow tools, force refresh:", forceRefresh);
+    FinanceToolsData.logToDebug("Loading all data" + (forceRefresh ? " (forced refresh)" : ""));
     
     // Load actuals data
-    await loadActualsData('incomeStatementActualsTool');
-    await loadActualsData('cashFlowActualsTool');
+    await loadActualsData('incomeStatementActualsTool', forceRefresh);
+    await loadActualsData('cashFlowActualsTool', forceRefresh);
     
     // Load learning outcomes
     await loadLearningOutcomesData();
@@ -590,6 +991,8 @@ async function loadAllData() {
     
     // Add save handlers to all inputs after loading
     setTimeout(attachInputSaveHandlers, 500);
+    
+    FinanceToolsData.logToDebug("All data loaded");
 }
 
 (function() {
@@ -625,6 +1028,7 @@ async function loadAllData() {
                 
                 if (wasHidden) {
                     console.log(`Showing ${toolId} and loading data...`);
+                    FinanceToolsData.logToDebug(`Opening ${toolId}`);
                     
                     if (toolId === 'summaryTool') {
                         // Force update summary with latest data
@@ -632,7 +1036,7 @@ async function loadAllData() {
                         updateSummary();
                     } else {
                         initializeTool(toolId);
-                        loadActualsData(toolId).then(() => {
+                        loadActualsData(toolId, true).then(() => {
                             // After loading actuals, make sure it's properly saved
                             console.log(`Data loaded for ${toolId}, recalculating totals...`);
                             calculateTotals(toolId);
@@ -688,6 +1092,7 @@ async function loadAllData() {
     // UPDATED: Initialize tool function with better error checking
     function initializeTool(toolId) {
         console.log(`Initializing ${toolId}...`);
+        FinanceToolsData.logToDebug(`Initializing ${toolId}...`);
         
         // Only proceed if this is an actuals tool (not the summary tool)
         if (!tools[toolId]) {
@@ -700,6 +1105,7 @@ async function loadAllData() {
         
         if (!table) {
             console.error(`Table not found for ${toolId}`);
+            FinanceToolsData.logToDebug(`Error: Table not found for ${toolId}`);
             return;
         }
         
@@ -742,6 +1148,7 @@ async function loadAllData() {
                 </tr>`;
 
             table.innerHTML = html;
+            FinanceToolsData.logToDebug(`Table created for ${toolId}`);
         } else {
             console.log(`Table already exists for ${toolId}, skipping creation`);
         }
@@ -766,6 +1173,8 @@ async function loadAllData() {
             
             // Attach save handlers to the new row
             setTimeout(attachInputSaveHandlers, 100);
+            
+            FinanceToolsData.logToDebug(`Added new row to ${section} in ${toolId}`);
         }
     }
 
@@ -774,6 +1183,7 @@ async function loadAllData() {
         if (row) {
             row.remove();
             calculateTotals(toolId);
+            FinanceToolsData.logToDebug(`Removed row ${rowId} from ${toolId}`);
         }
     }
 
@@ -782,35 +1192,56 @@ async function loadAllData() {
         return totalElement ? parseFloat(totalElement.textContent.replace('$', '')) || 0 : 0;
     }
 
-    // FIXED: Save actuals input data with proper syntax
+    // IMPROVED: Save actuals input data with proper error handling
     async function saveActualsInputData(toolId) {
         console.log(`Saving input data for ${toolId}...`);
         
-        const tool = tools[toolId];
-        if (!tool) {
-            console.error(`Tool configuration not found for ${toolId}`);
+        try {
+            const tool = tools[toolId];
+            if (!tool) {
+                console.error(`Tool configuration not found for ${toolId}`);
+                FinanceToolsData.logToDebug(`Error: Tool configuration not found for ${toolId}`);
+                return {};
+            }
+            
+            const inputData = {};
+            
+            tool.sections.forEach(section => {
+                inputData[section.name] = {};
+                
+                section.rows.forEach(row => {
+                    const inputs = document.querySelectorAll(`[data-tool="${toolId}"][data-section="${section.name}"][data-category="${row}"]`);
+                    // FIXED: Proper syntax for input data assignment
+                    inputData[section.name][row] = Array.from(inputs).map(input => input.value || '');
+                });
+                
+                // Add custom rows that might have been added
+                const customRows = Array.from(document.querySelectorAll(`[data-tool="${toolId}"][data-section="${section.name}"]`))
+                    .map(el => el.dataset.category)
+                    .filter(category => !tool.sections.find(s => s.name === section.name).rows.includes(category))
+                    .filter((value, index, self) => self.indexOf(value) === index); // Get unique categories
+                
+                customRows.forEach(category => {
+                    const inputs = document.querySelectorAll(`[data-tool="${toolId}"][data-section="${section.name}"][data-category="${category}"]`);
+                    if (inputs.length > 0) {
+                        inputData[section.name][category] = Array.from(inputs).map(input => input.value || '');
+                    }
+                });
+            });
+
+            return inputData;
+        } catch (error) {
+            console.error(`Error saving input data for ${toolId}:`, error);
+            FinanceToolsData.logToDebug(`Error saving input data: ${error.message}`);
             return {};
         }
-        
-        const inputData = {};
-        
-        tool.sections.forEach(section => {
-            inputData[section.name] = {};
-            
-            section.rows.forEach(row => {
-                const inputs = document.querySelectorAll(`[data-tool="${toolId}"][data-section="${section.name}"][data-category="${row}"]`);
-                // FIXED: This line had a syntax error due to line break
-                inputData[section.name][row] = Array.from(inputs).map(input => input.value || '');
-            });
-        });
-
-        return inputData;
     }
 
     // UPDATED: Save actuals data with immediate execution
     async function saveActualsData() {
         try {
             console.log("Saving actuals data...");
+            FinanceToolsData.logToDebug("Saving actuals data...");
             
             // Make sure section totals are calculated before saving
             const incomeStatementData = {
@@ -825,10 +1256,14 @@ async function loadAllData() {
                 inputs: await saveActualsInputData('cashFlowActualsTool')
             };
 
-            // Save using the unified storage system
-            FinanceToolsData.saveActualsData(incomeStatementData, cashFlowData);
+            // Log the data being saved
+            console.log("Data being saved:", { incomeStatementData, cashFlowData });
+
+            // Save using the unified storage system (prioritizes Wix CMS)
+            await FinanceToolsData.saveActualsData(incomeStatementData, cashFlowData);
             
             console.log("Actuals data saved successfully");
+            FinanceToolsData.logToDebug("Actuals data saved successfully");
             
             // Force summary update if it's visible
             if (document.getElementById('summaryTool').style.display === 'block') {
@@ -838,52 +1273,69 @@ async function loadAllData() {
             return true;
         } catch (error) {
             console.error('Error saving actuals data:', error);
+            FinanceToolsData.logToDebug(`Error saving actuals data: ${error.message}`);
             return false;
         }
     }
 
     // UPDATED: Load actuals data with better error handling and debugging
-    async function loadActualsData(toolId) {
+    async function loadActualsData(toolId, forceRefresh = false) {
         try {
             console.log(`Loading actuals data for ${toolId}...`);
+            FinanceToolsData.logToDebug(`Loading actuals data for ${toolId}${forceRefresh ? ' (forced)' : ''}...`);
             
             // Make sure the tool is initialized first
             initializeTool(toolId);
             
-            // First try to load from Wix DB if available
-            let toolData = null;
+            // Load data using the unified storage system (prioritizes Wix CMS)
+            const savedData = await FinanceToolsData.loadActualsData();
             
-            try {
-                const wixData = await FinanceToolsData.loadFromWixDB('actualsData');
-                if (wixData) {
-                    toolData = toolId === 'incomeStatementActualsTool' 
-                        ? wixData.incomeStatement 
-                        : wixData.cashFlow;
-                    console.log(`Loaded data from Wix DB for ${toolId}:`, toolData);
-                }
-            } catch (wixError) {
-                console.error('Error loading from Wix DB:', wixError);
+            if (!savedData) {
+                console.log(`No actuals data found for ${toolId}`);
+                FinanceToolsData.logToDebug(`No data found for ${toolId}`);
+                return false;
             }
             
-            // If no Wix data, try localStorage
-            if (!toolData || !toolData.inputs) {
-                const savedData = FinanceToolsData.loadActualsData();
-                if (savedData) {
-                    toolData = toolId === 'incomeStatementActualsTool' 
-                        ? savedData.incomeStatement 
-                        : savedData.cashFlow;
-                    console.log(`Loaded data from localStorage for ${toolId}:`, toolData);
-                }
-            }
+            const toolData = toolId === 'incomeStatementActualsTool' 
+                ? savedData.incomeStatement 
+                : savedData.cashFlow;
+            
+            console.log(`Loaded data for ${toolId}:`, toolData);
             
             // If we have data, populate the inputs
             if (toolData && toolData.inputs) {
                 console.log(`Found data for ${toolId}, populating inputs:`, toolData);
+                FinanceToolsData.logToDebug(`Populating ${toolId} with saved data`);
                 
                 let inputsPopulated = 0;
                 
                 Object.entries(toolData.inputs).forEach(([section, rows]) => {
                     Object.entries(rows).forEach(([row, values]) => {
+                        // Check if this is a custom row that needs to be added
+                        const isCustomRow = !tools[toolId].sections
+                            .find(s => s.name === section)?.rows
+                            .includes(row);
+                        
+                        if (isCustomRow) {
+                            console.log(`Found custom row: ${row} in ${section}`);
+                            // Add the custom row to the table
+                            const sectionHeader = Array.from(document.querySelectorAll(`tr`))
+                                .find(tr => tr.classList.contains('section-header') && 
+                                      tr.textContent.includes(section));
+                            
+                            if (sectionHeader) {
+                                const totalRow = Array.from(document.querySelectorAll(`tr`))
+                                    .find(tr => tr.classList.contains('total-row') && 
+                                          tr.textContent.includes(`Total ${section}`));
+                                
+                                if (totalRow) {
+                                    const newRowHtml = createRow(toolId, section, row, true);
+                                    totalRow.insertAdjacentHTML('beforebegin', newRowHtml);
+                                }
+                            }
+                        }
+                        
+                        // Now populate the values
                         values.forEach((value, index) => {
                             const input = document.querySelector(
                                 `[data-tool="${toolId}"][data-section="${section}"][data-category="${row}"][data-col="${index}"]`
@@ -900,17 +1352,20 @@ async function loadAllData() {
                 });
                 
                 console.log(`Populated ${inputsPopulated} inputs for ${toolId}`);
+                FinanceToolsData.logToDebug(`Populated ${inputsPopulated} inputs for ${toolId}`);
                 
                 // Calculate totals after populating inputs
                 calculateTotals(toolId);
                 return true;
             } else {
-                console.log(`No data found for ${toolId}`);
+                console.log(`No input data found for ${toolId}`);
+                FinanceToolsData.logToDebug(`No input data for ${toolId}`);
             }
             
             return false;
         } catch (error) {
             console.error('Error loading actuals data:', error);
+            FinanceToolsData.logToDebug(`Error loading data: ${error.message}`);
             return false;
         }
     }
@@ -922,6 +1377,7 @@ async function loadAllData() {
         const tool = tools[toolId];
         if (!tool) {
             console.error(`Tool not found: ${toolId}`);
+            FinanceToolsData.logToDebug(`Error: Tool not found: ${toolId}`);
             return;
         }
         
@@ -1002,7 +1458,8 @@ async function loadAllData() {
 
         const financialSummary = document.querySelector(`#${toolId} .financial-summary`);
         if (financialSummary) {
-            financialSummary.innerHTML = `
+            financialSummary
+.innerHTML = `
                 <h3>Financial Analysis</h3>
                 <div>Total ${tool.sections[0].name}: $${totalRevenue.toFixed(2)}</div>
                 <div>Total ${tool.sections[1].name}: $${totalExpenses.toFixed(2)}</div>
@@ -1015,9 +1472,11 @@ async function loadAllData() {
 
         updateChart(toolId, netTotals);
         
-        // Save data whenever calculations are updated - use setTimeout to ensure it's not called too rapidly
-        setTimeout(() => saveActualsData(), 100);
+        // Save data whenever calculations are updated
+        saveActualsData();
+        
         console.log(`${toolId} calculations completed and data saved`);
+        FinanceToolsData.logToDebug(`${toolId} calculations completed`);
     }
 
     function updateChart(toolId, data) {
@@ -1056,15 +1515,22 @@ async function loadAllData() {
     }
 
     // UPDATED: Update summary function with improved data handling
-    function updateSummary() {
+    async function updateSummary() {
         console.log("Updating summary...");
+        FinanceToolsData.logToDebug("Updating summary...");
+        
         const comparisonTables = document.getElementById('comparisonTables');
+        if (!comparisonTables) {
+            console.error("Comparison tables container not found");
+            FinanceToolsData.logToDebug("Error: Comparison tables container not found");
+            return;
+        }
         
         // Force a refresh of local data
         diagnoseDataIssues();
         
         // Load forecast data with fallback to empty structure
-        const forecastData = FinanceToolsData.loadForecastData() || {
+        const forecastData = await FinanceToolsData.loadForecastData() || {
             incomeStatement: { revenue: 0, expenses: 0 },
             cashFlow: { inflows: 0, outflows: 0 }
         };
@@ -1247,9 +1713,10 @@ async function loadAllData() {
         updateComparisonChart(forecastProfitAfterTax, actualProfitAfterTax);
         
         // Load learning outcomes data
-        loadLearningOutcomesData();
+        await loadLearningOutcomesData();
         
         console.log("Summary updated successfully");
+        FinanceToolsData.logToDebug("Summary updated successfully");
     }
 
     // Updated comparison chart
@@ -1295,22 +1762,25 @@ async function loadAllData() {
     }
 
     // UPDATED: Save learning outcomes with better error handling
-    function saveLearningOutcomes() {
+    async function saveLearningOutcomes() {
         try {
             console.log("Saving learning outcomes...");
+            FinanceToolsData.logToDebug("Saving learning outcomes...");
             
             const outcomes = {
-                keyDecisions: document.getElementById('keyDecisionsText').value,
-                challenges: document.getElementById('challengesText').value,
-                successFactors: document.getElementById('successFactorsText').value
+                keyDecisions: document.getElementById('keyDecisionsText')?.value || '',
+                challenges: document.getElementById('challengesText')?.value || '',
+                successFactors: document.getElementById('successFactorsText')?.value || ''
             };
             
-            FinanceToolsData.saveLearningOutcomes(outcomes);
+            await FinanceToolsData.saveLearningOutcomes(outcomes);
             console.log("Learning outcomes saved successfully");
+            FinanceToolsData.logToDebug("Learning outcomes saved successfully");
             
             return true;
         } catch (error) {
             console.error("Error saving learning outcomes:", error);
+            FinanceToolsData.logToDebug(`Error saving learning outcomes: ${error.message}`);
             return false;
         }
     }
@@ -1319,23 +1789,14 @@ async function loadAllData() {
     async function loadLearningOutcomesData() {
         try {
             console.log("Loading learning outcomes...");
+            FinanceToolsData.logToDebug("Loading learning outcomes...");
             
-            // First try to load from Wix DB if available
-            let outcomes = null;
-            
-            try {
-                outcomes = await FinanceToolsData.loadFromWixDB('learningOutcomes');
-            } catch (wixError) {
-                console.error('Error loading learning outcomes from Wix DB:', wixError);
-            }
-            
-            // If no Wix data, try localStorage
-            if (!outcomes) {
-                outcomes = FinanceToolsData.loadLearningOutcomes();
-            }
+            // Load from Wix CMS with localStorage fallback
+            const outcomes = await FinanceToolsData.loadLearningOutcomes();
             
             if (outcomes) {
                 console.log("Found learning outcomes:", outcomes);
+                FinanceToolsData.logToDebug("Learning outcomes found");
                 
                 if (document.getElementById('keyDecisionsText')) {
                     document.getElementById('keyDecisionsText').value = outcomes.keyDecisions || '';
@@ -1350,11 +1811,13 @@ async function loadAllData() {
                 return true;
             } else {
                 console.log("No learning outcomes found");
+                FinanceToolsData.logToDebug("No learning outcomes found");
             }
             
             return false;
         } catch (error) {
             console.error('Error loading learning outcomes:', error);
+            FinanceToolsData.logToDebug(`Error loading learning outcomes: ${error.message}`);
             return false;
         }
     }
@@ -1362,11 +1825,10 @@ async function loadAllData() {
     // Event listener setup - UPDATED with better initialization
     document.addEventListener('DOMContentLoaded', function() {
         console.log("Document loaded, initializing actuals/summary tools");
+        FinanceToolsData.logToDebug("Document loaded, initializing financial tools");
         
-        // Show debug panel in dev mode
-        if (window.location.href.includes('devMode=true')) {
-            document.getElementById('debugPanel').style.display = 'block';
-        }
+        // Show debug button
+        document.getElementById('debugToggle').style.display = 'block';
         
         // Set up tile click handlers
         document.querySelectorAll('.tile').forEach(tile => {
@@ -1378,8 +1840,8 @@ async function loadAllData() {
             });
         });
 
-        // Initialize Wix integration
-        initWixIntegration();
+        // Initialize Wix environment
+        initWixEnvironment();
 
         // Pre-initialize tools for faster loading later
         initializeTool('incomeStatementActualsTool');
@@ -1400,16 +1862,20 @@ async function loadAllData() {
         setTimeout(() => {
             loadLearningOutcomesData().then(() => {
                 console.log("Initial learning outcomes load complete");
+                FinanceToolsData.logToDebug("Initial learning outcomes loaded");
             });
         }, 500);
         
-        // Add save handlers to inputs
+        // Add save handlers to all inputs
         setTimeout(attachInputSaveHandlers, 1000);
+        
+        // Run diagnostics
+        setTimeout(diagnoseDataIssues, 2000);
         
         // Add keyboard shortcut for diagnostic (Ctrl+Shift+D)
         document.addEventListener('keydown', function(e) {
             if (e.ctrlKey && e.shiftKey && e.key === 'D') {
-                diagnoseDataIssues();
+                toggleDebugPanel();
             }
         });
     });
@@ -1428,6 +1894,8 @@ async function loadAllData() {
     window.loadAllData = loadAllData;
     window.diagnoseDataIssues = diagnoseDataIssues;
     window.attachInputSaveHandlers = attachInputSaveHandlers;
+    window.toggleDebugPanel = toggleDebugPanel;
+    window.forceReload = forceReload;
     
     // Add a periodic data check to ensure data persistence
     setInterval(() => {
