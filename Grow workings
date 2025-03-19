@@ -1458,8 +1458,7 @@ async function loadAllData(forceRefresh = false) {
 
         const financialSummary = document.querySelector(`#${toolId} .financial-summary`);
         if (financialSummary) {
-            financialSummary
-.innerHTML = `
+            financialSummary.innerHTML = `
                 <h3>Financial Analysis</h3>
                 <div>Total ${tool.sections[0].name}: $${totalRevenue.toFixed(2)}</div>
                 <div>Total ${tool.sections[1].name}: $${totalExpenses.toFixed(2)}</div>
