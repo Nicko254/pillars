@@ -1517,8 +1517,7 @@ function updateSummary() {
             </tr>
             <tr>
                 <td>Net Profit (After Tax)</td>
-                <td>$${forecast
-ProfitAfterTax.toFixed(2)}</td>
+                <td>$${forecastProfitAfterTax.toFixed(2)}</td>
                 <td>$${actualProfitAfterTax.toFixed(2)}</td>
                 <td class="${actualProfitAfterTax - forecastProfitAfterTax >= 0 ? 'variance-positive' : 'variance-negative'}">
                     $${(actualProfitAfterTax - forecastProfitAfterTax).toFixed(2)}
