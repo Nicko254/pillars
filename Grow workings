@@ -1811,3 +1811,23 @@ window.attachInputSaveHandlers = attachInputSaveHandlers;
 window.toggleDebugPanel = toggleDebugPanel;
 window.forceReload = forceReload;
 window.initializeFinanceTools = initializeFinanceTools;
+// Make necessary functions global
+window.calculateTotals = calculateTotals;
+window.toggleTool = toggleTool;
+window.addRow = addRow;
+window.removeRow = removeRow;
+window.updateRowCategory = updateRowCategory;
+window.loadActualsData = loadActualsData;
+window.calculateSectionTotal = calculateSectionTotal;
+window.saveLearningOutcomes = saveLearningOutcomes;
+window.updateSummary = updateSummary;
+window.initializeTool = initializeTool;
+window.loadAllData = loadAllData;
+window.diagnoseDataIssues = diagnoseDataIssues;
+window.attachInputSaveHandlers = attachInputSaveHandlers;
+window.toggleDebugPanel = toggleDebugPanel;
+window.forceReload = forceReload;
+window.initializeFinanceTools = initializeFinanceTools;
+</script>
+</body>
+</html>
