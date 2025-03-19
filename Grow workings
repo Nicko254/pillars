@@ -591,6 +591,7 @@ async function loadAllData() {
     // Add save handlers to all inputs after loading
     setTimeout(attachInputSaveHandlers, 500);
 }
+
 (function() {
     const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     const tools = {
@@ -781,7 +782,7 @@ async function loadAllData() {
         return totalElement ? parseFloat(totalElement.textContent.replace('$', '')) || 0 : 0;
     }
 
-    // UPDATED: Save actuals input data with better error handling
+    // FIXED: Save actuals input data with proper syntax
     async function saveActualsInputData(toolId) {
         console.log(`Saving input data for ${toolId}...`);
         
@@ -798,8 +799,8 @@ async function loadAllData() {
             
             section.rows.forEach(row => {
                 const inputs = document.querySelectorAll(`[data-tool="${toolId}"][data-section="${section.name}"][data-category="${row}"]`);
-                inputData[
-section.name][row] = Array.from(inputs).map(input => input.value || '');
+                // FIXED: This line had a syntax error due to line break
+                inputData[section.name][row] = Array.from(inputs).map(input => input.value || '');
             });
         });
 
@@ -815,6 +816,7 @@ section.name][row] = Array.from(inputs).map(input => input.value || '');
             const incomeStatementData = {
                 revenue: calculateSectionTotal('incomeStatementActualsTool', 'Revenue'),
                 expenses: calculateSectionTotal('incomeStatementActualsTool', 'Expenses'),
+('incomeStatementActualsTool', 'Expenses'),
                 inputs: await saveActualsInputData('incomeStatementActualsTool')
             };
             
@@ -914,7 +916,7 @@ section.name][row] = Array.from(inputs).map(input => input.value || '');
         }
     }
 
-    // UPDATED: Calculate totals function with fixed syntax and better save handling
+    // FIXED: Calculate totals function with fixed template string syntax
     function calculateTotals(toolId) {
         console.log(`Calculating totals for ${toolId}...`);
         
@@ -935,7 +937,7 @@ section.name][row] = Array.from(inputs).map(input => input.value || '');
             const section = input.dataset.section;
             const category = input.dataset.category;
             
-            // FIXED: Proper string template literal closure
+            // FIXED: Proper string template literal syntax
             const rowId = `${toolId}-${section.replace(/\s+/g, '')}-${category.replace(/\s+/g, '')}`;
             
             totals[section] = totals[section] || Array(months.length).fill(0);
