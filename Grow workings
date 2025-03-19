@@ -816,7 +816,6 @@ async function loadAllData() {
             const incomeStatementData = {
                 revenue: calculateSectionTotal('incomeStatementActualsTool', 'Revenue'),
                 expenses: calculateSectionTotal('incomeStatementActualsTool', 'Expenses'),
-('incomeStatementActualsTool', 'Expenses'),
                 inputs: await saveActualsInputData('incomeStatementActualsTool')
             };
             
