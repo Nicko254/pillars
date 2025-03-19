@@ -180,6 +180,8 @@
             font-size: 12px;
             z-index: 1000;
             display: none;
+            max-height: 80vh;
+            overflow-y: auto;
         }
         #debugToggle {
             position: fixed;
@@ -192,7 +194,6 @@
             border-radius: 4px;
             cursor: pointer;
             z-index: 999;
-            display: none;
         }
         .saving-indicator {
             position: fixed;
@@ -590,6 +591,9 @@ function diagnoseDataIssues() {
             <h4>Cash Flow Totals</h4>
             <p>Inflows: $${calculateSectionTotal('cashFlowActualsTool', 'Cash Inflows')}</p>
             <p>Outflows: $${calculateSectionTotal('cashFlowActualsTool', 'Cash Outflows')}</p>
+            <h4>LocalStorage Contents</h4>
+            <pre>${forecastData ? JSON.stringify(JSON.parse(forecastData), null, 2) : "No forecast data"}</pre>
+            <pre>${actualsData ? JSON.stringify(JSON.parse(actualsData), null, 2) : "No actuals data"}</pre>
         `;
         document.getElementById('debugPanel').style.display = 'block';
     }
@@ -816,7 +820,7 @@ async function loadAllData(forceRefresh = false) {
                     <td></td>
                 </tr>`;
 
-            table.innerHTML= html;
+            table.innerHTML = html;
         } else {
             console.log(`Table already exists for ${toolId}, skipping creation`);
         }
@@ -1198,8 +1202,8 @@ async function loadAllData(forceRefresh = false) {
         });
     }
 
-    // UPDATED: Update summary function with improved data handling
-    async function updateSummary() {
+    // IMPROVED: Updated summary function with fixed direct localStorage access
+    function updateSummary() {
         console.log("Updating summary...");
         
         const comparisonTables = document.getElementById('comparisonTables');
@@ -1208,29 +1212,30 @@ async function loadAllData(forceRefresh = false) {
             return;
         }
         
-        // IMPORTANT: Directly load data from localStorage
+        // DEBUG: Log all localStorage items
+        console.log("All localStorage items for diagnosis:");
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            console.log(`${key}: ${localStorage.getItem(key)}`);
+        }
+        
+        // IMPORTANT: Directly access localStorage - no async/await needed for direct access
         let forecastData = null;
         let actualsData = null;
         
         try {
-            // Try to load forecast data directly from localStorage
+            // Get forecast data directly from localStorage
             const forecastRawData = localStorage.getItem('financeTools_forecastData');
             if (forecastRawData) {
                 forecastData = JSON.parse(forecastRawData);
                 console.log("Loaded forecast data directly from localStorage for summary:", forecastData);
-            } else {
-                // Fallback to the storage system
-                forecastData = await FinanceToolsData.loadForecastData();
             }
             
-            // Try to load actuals data directly from localStorage
+            // Get actuals data directly from localStorage
             const actualsRawData = localStorage.getItem('financeTools_actualsData');
             if (actualsRawData) {
                 actualsData = JSON.parse(actualsRawData);
                 console.log("Loaded actuals data directly from localStorage for summary:", actualsData);
-            } else {
-                // Fallback to the storage system
-                actualsData = await FinanceToolsData.loadActualsData();
             }
         } catch (e) {
             console.error("Error loading data for summary:", e);
@@ -1246,29 +1251,20 @@ async function loadAllData(forceRefresh = false) {
             incomeStatement: { revenue: 0, expenses: 0 },
             cashFlow: { inflows: 0, outflows: 0 }
         };
-
-        // Get actuals data
-        const incomeStatementActuals = {
-            revenue: actualsData.incomeStatement.revenue || calculateSectionTotal('incomeStatementActualsTool', 'Revenue'),
-            expenses: actualsData.incomeStatement.expenses || calculateSectionTotal('incomeStatementActualsTool', 'Expenses')
-        };
         
-        const cashFlowActuals = {
-            inflows: actualsData.cashFlow.inflows || calculateSectionTotal('cashFlowActualsTool', 'Cash Inflows'),
-            outflows: actualsData.cashFlow.outflows || calculateSectionTotal('cashFlowActualsTool', 'Cash Outflows')
-        };
-
-        console.log("Summary data:", { 
-            forecast: forecastData,
-            actuals: { incomeStatementActuals, cashFlowActuals }
-        });
-
+        // DEBUG: Log the actual values to verify they exist
+        console.log("SUMMARY DATA CHECK:");
+        console.log("Forecast Income Statement Revenue:", forecastData.incomeStatement.revenue);
+        console.log("Actuals Income Statement Revenue:", actualsData.incomeStatement.revenue);
+        console.log("Forecast Cash Flow Inflows:", forecastData.cashFlow.inflows);
+        console.log("Actuals Cash Flow Inflows:", actualsData.cashFlow.inflows);
+        
         // Get tax rate
         const taxRateInput = document.getElementById('incomeStatementActuals-tax-rate');
         const taxRate = parseFloat(taxRateInput?.value) || 25;
 
         // Calculate Income Statement metrics
-        const actualNetProfit = incomeStatementActuals.revenue - incomeStatementActuals.expenses;
+        const actualNetProfit = actualsData.incomeStatement.revenue - actualsData.incomeStatement.expenses;
         const actualTax = actualNetProfit > 0 ? actualNetProfit * (taxRate / 100) : 0;
         const actualProfitAfterTax = actualNetProfit - actualTax;
         
@@ -1277,12 +1273,12 @@ async function loadAllData(forceRefresh = false) {
         const forecastProfitAfterTax = forecastNetProfit - forecastTax;
 
         // Calculate financial ratios
-        const actualGrossProfitMargin = (incomeStatementActuals.revenue > 0) ? 
-            ((incomeStatementActuals.revenue - incomeStatementActuals.expenses) / incomeStatementActuals.revenue * 100) : 0;
-        const actualNetProfitMargin = (incomeStatementActuals.revenue > 0) ? 
-            (actualProfitAfterTax / incomeStatementActuals.revenue * 100) : 0;
-        const actualExpenseRatio = (incomeStatementActuals.revenue > 0) ?
-            (incomeStatementActuals.expenses / incomeStatementActuals.revenue * 100) : 0;
+        const actualGrossProfitMargin = (actualsData.incomeStatement.revenue > 0) ? 
+            ((actualsData.incomeStatement.revenue - actualsData.incomeStatement.expenses) / actualsData.incomeStatement.revenue * 100) : 0;
+        const actualNetProfitMargin = (actualsData.incomeStatement.revenue > 0) ? 
+            (actualProfitAfterTax / actualsData.incomeStatement.revenue * 100) : 0;
+        const actualExpenseRatio = (actualsData.incomeStatement.revenue > 0) ?
+            (actualsData.incomeStatement.expenses / actualsData.incomeStatement.revenue * 100) : 0;
 
         // Safely calculate variance percentages
         function safePercentage(actual, forecast) {
@@ -1304,23 +1300,23 @@ async function loadAllData(forceRefresh = false) {
                 <tr>
                     <td>Total Revenue</td>
                     <td>$${forecastData.incomeStatement.revenue.toFixed(2)}</td>
-                    <td>$${incomeStatementActuals.revenue.toFixed(2)}</td>
-                    <td class="${incomeStatementActuals.revenue - forecastData.incomeStatement.revenue >= 0 ? 'variance-positive' : 'variance-negative'}">
-                        $${(incomeStatementActuals.revenue - forecastData.incomeStatement.revenue).toFixed(2)}
+                    <td>$${actualsData.incomeStatement.revenue.toFixed(2)}</td>
+                    <td class="${actualsData.incomeStatement.revenue - forecastData.incomeStatement.revenue >= 0 ? 'variance-positive' : 'variance-negative'}">
+                        $${(actualsData.incomeStatement.revenue - forecastData.incomeStatement.revenue).toFixed(2)}
                     </td>
-                    <td class="${incomeStatementActuals.revenue - forecastData.incomeStatement.revenue >= 0 ? 'variance-positive' : 'variance-negative'}">
-                        ${safePercentage(incomeStatementActuals.revenue, forecastData.incomeStatement.revenue)}%
+                    <td class="${actualsData.incomeStatement.revenue - forecastData.incomeStatement.revenue >= 0 ? 'variance-positive' : 'variance-negative'}">
+                        ${safePercentage(actualsData.incomeStatement.revenue, forecastData.incomeStatement.revenue)}%
                     </td>
                 </tr>
                 <tr>
                     <td>Total Expenses</td>
                     <td>$${forecastData.incomeStatement.expenses.toFixed(2)}</td>
-                    <td>$${incomeStatementActuals.expenses.toFixed(2)}</td>
-                    <td class="${forecastData.incomeStatement.expenses - incomeStatementActuals.expenses >= 0 ? 'variance-positive' : 'variance-negative'}">
-                        $${(forecastData.incomeStatement.expenses - incomeStatementActuals.expenses).toFixed(2)}
+                    <td>$${actualsData.incomeStatement.expenses.toFixed(2)}</td>
+                    <td class="${forecastData.incomeStatement.expenses - actualsData.incomeStatement.expenses >= 0 ? 'variance-positive' : 'variance-negative'}">
+                        $${(forecastData.incomeStatement.expenses - actualsData.incomeStatement.expenses).toFixed(2)}
                     </td>
-                    <td class="${forecastData.incomeStatement.expenses - incomeStatementActuals.expenses >= 0 ? 'variance-positive' : 'variance-negative'}">
-                        ${safePercentage(forecastData.incomeStatement.expenses, incomeStatementActuals.expenses)}%
+                    <td class="${forecastData.incomeStatement.expenses - actualsData.incomeStatement.expenses >= 0 ? 'variance-positive' : 'variance-negative'}">
+                        ${safePercentage(forecastData.incomeStatement.expenses, actualsData.incomeStatement.expenses)}%
                     </td>
                 </tr>
                 <tr>
@@ -1370,34 +1366,34 @@ async function loadAllData(forceRefresh = false) {
                 <tr>
                     <td>Total Cash Inflows</td>
                     <td>$${forecastData.cashFlow.inflows.toFixed(2)}</td>
-                    <td>$${cashFlowActuals.inflows.toFixed(2)}</td>
-                    <td class="${cashFlowActuals.inflows - forecastData.cashFlow.inflows >= 0 ? 'variance-positive' : 'variance-negative'}">
-                        $${(cashFlowActuals.inflows - forecastData.cashFlow.inflows).toFixed(2)}
+                    <td>$${actualsData.cashFlow.inflows.toFixed(2)}</td>
+                    <td class="${actualsData.cashFlow.inflows - forecastData.cashFlow.inflows >= 0 ? 'variance-positive' : 'variance-negative'}">
+                        $${(actualsData.cashFlow.inflows - forecastData.cashFlow.inflows).toFixed(2)}
                     </td>
-                    <td class="${cashFlowActuals.inflows - forecastData.cashFlow.inflows >= 0 ? 'variance-positive' : 'variance-negative'}">
-                        ${safePercentage(cashFlowActuals.inflows, forecastData.cashFlow.inflows)}%
+                    <td class="${actualsData.cashFlow.inflows - forecastData.cashFlow.inflows >= 0 ? 'variance-positive' : 'variance-negative'}">
+                        ${safePercentage(actualsData.cashFlow.inflows, forecastData.cashFlow.inflows)}%
                     </td>
                 </tr>
                 <tr>
                     <td>Total Cash Outflows</td>
                     <td>$${forecastData.cashFlow.outflows.toFixed(2)}</td>
-                    <td>$${cashFlowActuals.outflows.toFixed(2)}</td>
-                    <td class="${forecastData.cashFlow.outflows - cashFlowActuals.outflows >= 0 ? 'variance-positive' : 'variance-negative'}">
-                        $${(forecastData.cashFlow.outflows - cashFlowActuals.outflows).toFixed(2)}
+                    <td>$${actualsData.cashFlow.outflows.toFixed(2)}</td>
+                    <td class="${forecastData.cashFlow.outflows - actualsData.cashFlow.outflows >= 0 ? 'variance-positive' : 'variance-negative'}">
+                        $${(forecastData.cashFlow.outflows - actualsData.cashFlow.outflows).toFixed(2)}
                     </td>
-                    <td class="${forecastData.cashFlow.outflows - cashFlowActuals.outflows >= 0 ? 'variance-positive' : 'variance-negative'}">
-                        ${safePercentage(forecastData.cashFlow.outflows, cashFlowActuals.outflows)}%
+                    <td class="${forecastData.cashFlow.outflows - actualsData.cashFlow.outflows >= 0 ? 'variance-positive' : 'variance-negative'}">
+                        ${safePercentage(forecastData.cashFlow.outflows, actualsData.cashFlow.outflows)}%
                     </td>
                 </tr>
                 <tr>
                     <td>Net Cash Flow</td>
                     <td>$${(forecastData.cashFlow.inflows - forecastData.cashFlow.outflows).toFixed(2)}</td>
-                    <td>$${(cashFlowActuals.inflows - cashFlowActuals.outflows).toFixed(2)}</td>
-                    <td class="${(cashFlowActuals.inflows - cashFlowActuals.outflows) - (forecastData.cashFlow.inflows - forecastData.cashFlow.outflows) >= 0 ? 'variance-positive' : 'variance-negative'}">
-                        $${((cashFlowActuals.inflows - cashFlowActuals.outflows) - (forecastData.cashFlow.inflows - forecastData.cashFlow.outflows)).toFixed(2)}
+                    <td>$${(actualsData.cashFlow.inflows - actualsData.cashFlow.outflows).toFixed(2)}</td>
+                    <td class="${(actualsData.cashFlow.inflows - actualsData.cashFlow.outflows) - (forecastData.cashFlow.inflows - forecastData.cashFlow.outflows) >= 0 ? 'variance-positive' : 'variance-negative'}">
+                        $${((actualsData.cashFlow.inflows - actualsData.cashFlow.outflows) - (forecastData.cashFlow.inflows - forecastData.cashFlow.outflows)).toFixed(2)}
                     </td>
-                    <td class="${(cashFlowActuals.inflows - cashFlowActuals.outflows) - (forecastData.cashFlow.inflows - forecastData.cashFlow.outflows) >= 0 ? 'variance-positive' : 'variance-negative'}">
-                        ${safePercentage((cashFlowActuals.inflows - cashFlowActuals.outflows), (forecastData.cashFlow.inflows - forecastData.cashFlow.outflows))}%
+                    <td class="${(actualsData.cashFlow.inflows - actualsData.cashFlow.outflows) - (forecastData.cashFlow.inflows - forecastData.cashFlow.outflows) >= 0 ? 'variance-positive' : 'variance-negative'}">
+                        ${safePercentage((actualsData.cashFlow.inflows - actualsData.cashFlow.outflows), (forecastData.cashFlow.inflows - forecastData.cashFlow.outflows))}%
                     </td>
                 </tr>
             </table>
@@ -1426,7 +1422,7 @@ async function loadAllData(forceRefresh = false) {
         updateComparisonChart(forecastProfitAfterTax, actualProfitAfterTax);
         
         // Load learning outcomes data
-        await loadLearningOutcomesData();
+        loadLearningOutcomesData();
         
         console.log("Summary updated successfully");
     }
@@ -1446,7 +1442,7 @@ async function loadAllData(forceRefresh = false) {
                 labels: ['Forecast', 'Actual'],
                 datasets: [{
                     label: 'Net Profit Comparison',
-data: [forecastProfit, actualProfit],
+                    data: [forecastProfit, actualProfit],
                     backgroundColor: [
                         'rgba(54, 162, 235, 0.6)',
                         'rgba(75, 192, 192, 0.6)'
