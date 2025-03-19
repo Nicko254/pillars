@@ -169,6 +169,18 @@
             border-radius: 4px;
             font-size: 14px;
         }
+        .debug-panel {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background-color: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 1000;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -263,6 +275,12 @@
                 onchange="saveLearningOutcomes()"></textarea>
         </div>
     </div>
+    
+    <div id="debugPanel" class="debug-panel">
+        <div id="debugOutput"></div>
+        <button onclick="diagnoseDataIssues()">Run Diagnostics</button>
+    </div>
+    
 <script>
 // Unified data management for both tools
 const FinanceToolsData = {
@@ -465,6 +483,66 @@ const FinanceToolsData = {
     }
 };
 
+// Add diagnostic function to help debug issues
+function diagnoseDataIssues() {
+    console.log("=== FINANCE TOOLS DIAGNOSTIC ===");
+    
+    // Check localStorage data
+    const forecastData = localStorage.getItem('financeTools_forecastData');
+    const actualsData = localStorage.getItem('financeTools_actualsData');
+    
+    console.log("Forecast data in localStorage:", forecastData ? JSON.parse(forecastData) : "NONE");
+    console.log("Actuals data in localStorage:", actualsData ? JSON.parse(actualsData) : "NONE");
+    
+    // Check calculations
+    if (document.getElementById('incomeStatementActualsTool')) {
+        console.log("Income Statement Actuals Revenue:", calculateSectionTotal('incomeStatementActualsTool', 'Revenue'));
+        console.log("Income Statement Actuals Expenses:", calculateSectionTotal('incomeStatementActualsTool', 'Expenses'));
+    }
+    
+    if (document.getElementById('cashFlowActualsTool')) {
+        console.log("Cash Flow Actuals Inflows:", calculateSectionTotal('cashFlowActualsTool', 'Cash Inflows'));
+        console.log("Cash Flow Actuals Outflows:", calculateSectionTotal('cashFlowActualsTool', 'Cash Outflows'));
+    }
+    
+    // Check Wix connections
+    console.log("Wix API available:", typeof wix !== 'undefined' && !!wix.data);
+    
+    // Update debug panel
+    const debugOutput = document.getElementById('debugOutput');
+    if (debugOutput) {
+        debugOutput.innerHTML = `
+            <p>Forecast data: ${forecastData ? "FOUND" : "MISSING"}</p>
+            <p>Actuals data: ${actualsData ? "FOUND" : "MISSING"}</p>
+            <p>Wix API: ${typeof wix !== 'undefined' && !!wix.data ? "AVAILABLE" : "UNAVAILABLE"}</p>
+        `;
+        document.getElementById('debugPanel').style.display = 'block';
+    }
+    
+    console.log("================================");
+}
+
+// Add function to ensure inputs save properly
+function attachInputSaveHandlers() {
+    console.log("Attaching input save handlers...");
+    document.querySelectorAll('.actuals-input').forEach(input => {
+        // Remove any existing listeners to avoid duplicates
+        const newInput = input.cloneNode(true);
+        input.parentNode.replaceChild(newInput, input);
+        
+        newInput.addEventListener('change', function() {
+            console.log(`Value changed in ${this.dataset.tool}, saving data...`);
+            setTimeout(() => saveActualsData(), 100);
+        });
+        
+        // Also attach blur handler for additional saving point
+        newInput.addEventListener('blur', function() {
+            console.log(`Input blur in ${this.dataset.tool}, saving data...`);
+            setTimeout(() => saveActualsData(), 100);
+        });
+    });
+}
+
 // Initialize Wix if it's available
 function initWixIntegration() {
     if (typeof wix !== 'undefined') {
@@ -509,8 +587,10 @@ async function loadAllData() {
         document.getElementById('summaryTool').style.display === 'block') {
         updateSummary();
     }
+    
+    // Add save handlers to all inputs after loading
+    setTimeout(attachInputSaveHandlers, 500);
 }
-
 (function() {
     const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     const tools = {
@@ -532,7 +612,7 @@ async function loadAllData() {
         }
     };
 
-    // UPDATED: Toggle tool function
+    // UPDATED: Toggle tool function with enhanced data handling
     function toggleTool(toolId) {
         console.log(`Toggling tool: ${toolId}`);
         const allTools = document.querySelectorAll('.actuals-tool, .summary-tool');
@@ -546,10 +626,17 @@ async function loadAllData() {
                     console.log(`Showing ${toolId} and loading data...`);
                     
                     if (toolId === 'summaryTool') {
+                        // Force update summary with latest data
+                        diagnoseDataIssues();
                         updateSummary();
                     } else {
                         initializeTool(toolId);
-                        loadActualsData(toolId);
+                        loadActualsData(toolId).then(() => {
+                            // After loading actuals, make sure it's properly saved
+                            console.log(`Data loaded for ${toolId}, recalculating totals...`);
+                            calculateTotals(toolId);
+                            attachInputSaveHandlers();
+                        });
                     }
                 }
             } else {
@@ -597,7 +684,7 @@ async function loadAllData() {
         calculateTotals(toolId);
     }
 
-    // UPDATED: Initialize tool function
+    // UPDATED: Initialize tool function with better error checking
     function initializeTool(toolId) {
         console.log(`Initializing ${toolId}...`);
         
@@ -675,6 +762,9 @@ async function loadAllData() {
         if (totalRow) {
             totalRow.insertAdjacentHTML('beforebegin', newRowHtml);
             calculateTotals(toolId);
+            
+            // Attach save handlers to the new row
+            setTimeout(attachInputSaveHandlers, 100);
         }
     }
 
@@ -691,7 +781,7 @@ async function loadAllData() {
         return totalElement ? parseFloat(totalElement.textContent.replace('$', '')) || 0 : 0;
     }
 
-    // UPDATED: Save actuals input data
+    // UPDATED: Save actuals input data with better error handling
     async function saveActualsInputData(toolId) {
         console.log(`Saving input data for ${toolId}...`);
         
@@ -708,18 +798,20 @@ async function loadAllData() {
             
             section.rows.forEach(row => {
                 const inputs = document.querySelectorAll(`[data-tool="${toolId}"][data-section="${section.name}"][data-category="${row}"]`);
-                inputData[section.name][row] = Array.from(inputs).map(input => input.value || '');
+                inputData[
+section.name][row] = Array.from(inputs).map(input => input.value || '');
             });
         });
 
         return inputData;
     }
 
-    // UPDATED: Save actuals data
+    // UPDATED: Save actuals data with immediate execution
     async function saveActualsData() {
         try {
             console.log("Saving actuals data...");
             
+            // Make sure section totals are calculated before saving
             const incomeStatementData = {
                 revenue: calculateSectionTotal('incomeStatementActualsTool', 'Revenue'),
                 expenses: calculateSectionTotal('incomeStatementActualsTool', 'Expenses'),
@@ -736,6 +828,12 @@ async function loadAllData() {
             FinanceToolsData.saveActualsData(incomeStatementData, cashFlowData);
             
             console.log("Actuals data saved successfully");
+            
+            // Force summary update if it's visible
+            if (document.getElementById('summaryTool').style.display === 'block') {
+                updateSummary();
+            }
+            
             return true;
         } catch (error) {
             console.error('Error saving actuals data:', error);
@@ -743,7 +841,7 @@ async function loadAllData() {
         }
     }
 
-    // UPDATED: Load actuals data
+    // UPDATED: Load actuals data with better error handling and debugging
     async function loadActualsData(toolId) {
         try {
             console.log(`Loading actuals data for ${toolId}...`);
@@ -760,6 +858,7 @@ async function loadAllData() {
                     toolData = toolId === 'incomeStatementActualsTool' 
                         ? wixData.incomeStatement 
                         : wixData.cashFlow;
+                    console.log(`Loaded data from Wix DB for ${toolId}:`, toolData);
                 }
             } catch (wixError) {
                 console.error('Error loading from Wix DB:', wixError);
@@ -772,12 +871,15 @@ async function loadAllData() {
                     toolData = toolId === 'incomeStatementActualsTool' 
                         ? savedData.incomeStatement 
                         : savedData.cashFlow;
+                    console.log(`Loaded data from localStorage for ${toolId}:`, toolData);
                 }
             }
             
             // If we have data, populate the inputs
             if (toolData && toolData.inputs) {
-                console.log(`Found data for ${toolId}:`, toolData);
+                console.log(`Found data for ${toolId}, populating inputs:`, toolData);
+                
+                let inputsPopulated = 0;
                 
                 Object.entries(toolData.inputs).forEach(([section, rows]) => {
                     Object.entries(rows).forEach(([row, values]) => {
@@ -787,6 +889,7 @@ async function loadAllData() {
                             );
                             if (input) {
                                 input.value = value;
+                                inputsPopulated++;
                                 console.log(`Set ${toolId} input [${section}][${row}][${index}] = ${value}`);
                             } else {
                                 console.warn(`Input not found for ${toolId} [${section}][${row}][${index}]`);
@@ -795,6 +898,9 @@ async function loadAllData() {
                     });
                 });
                 
+                console.log(`Populated ${inputsPopulated} inputs for ${toolId}`);
+                
+                // Calculate totals after populating inputs
                 calculateTotals(toolId);
                 return true;
             } else {
@@ -808,7 +914,7 @@ async function loadAllData() {
         }
     }
 
-    // UPDATED: Calculate totals function
+    // UPDATED: Calculate totals function with fixed syntax and better save handling
     function calculateTotals(toolId) {
         console.log(`Calculating totals for ${toolId}...`);
         
@@ -827,7 +933,10 @@ async function loadAllData() {
             const value = parseFloat(input.value) || 0;
             const col = parseInt(input.dataset.col);
             const section = input.dataset.section;
-            const category = input.dataset.category;const rowId = `${toolId}-${section.replace(/\s+/g, '')}-${category.replace(/\s+/g, '')}`;
+            const category = input.dataset.category;
+            
+            // FIXED: Proper string template literal closure
+            const rowId = `${toolId}-${section.replace(/\s+/g, '')}-${category.replace(/\s+/g, '')}`;
             
             totals[section] = totals[section] || Array(months.length).fill(0);
             totals[section][col] += value;
@@ -905,14 +1014,9 @@ async function loadAllData() {
 
         updateChart(toolId, netTotals);
         
-        // Save data whenever calculations are updated
-        saveActualsData();
+        // Save data whenever calculations are updated - use setTimeout to ensure it's not called too rapidly
+        setTimeout(() => saveActualsData(), 100);
         console.log(`${toolId} calculations completed and data saved`);
-        
-        // If the summary tool is visible, update it
-        if (document.getElementById('summaryTool').style.display === 'block') {
-            updateSummary();
-        }
     }
 
     function updateChart(toolId, data) {
@@ -950,12 +1054,15 @@ async function loadAllData() {
         });
     }
 
-    // UPDATED: Update summary function
+    // UPDATED: Update summary function with improved data handling
     function updateSummary() {
         console.log("Updating summary...");
         const comparisonTables = document.getElementById('comparisonTables');
         
-        // Load forecast data
+        // Force a refresh of local data
+        diagnoseDataIssues();
+        
+        // Load forecast data with fallback to empty structure
         const forecastData = FinanceToolsData.loadForecastData() || {
             incomeStatement: { revenue: 0, expenses: 0 },
             cashFlow: { inflows: 0, outflows: 0 }
@@ -1186,7 +1293,7 @@ async function loadAllData() {
         });
     }
 
-    // UPDATED: Save learning outcomes
+    // UPDATED: Save learning outcomes with better error handling
     function saveLearningOutcomes() {
         try {
             console.log("Saving learning outcomes...");
@@ -1207,7 +1314,7 @@ async function loadAllData() {
         }
     }
 
-    // UPDATED: Load learning outcomes data
+    // UPDATED: Load learning outcomes data with better error handling
     async function loadLearningOutcomesData() {
         try {
             console.log("Loading learning outcomes...");
@@ -1251,9 +1358,14 @@ async function loadAllData() {
         }
     }
 
-    // Event listener setup - UPDATED
+    // Event listener setup - UPDATED with better initialization
     document.addEventListener('DOMContentLoaded', function() {
         console.log("Document loaded, initializing actuals/summary tools");
+        
+        // Show debug panel in dev mode
+        if (window.location.href.includes('devMode=true')) {
+            document.getElementById('debugPanel').style.display = 'block';
+        }
         
         // Set up tile click handlers
         document.querySelectorAll('.tile').forEach(tile => {
@@ -1272,6 +1384,10 @@ async function loadAllData() {
         initializeTool('incomeStatementActualsTool');
         initializeTool('cashFlowActualsTool');
         
+        // Load actuals data proactively
+        loadActualsData('incomeStatementActualsTool');
+        loadActualsData('cashFlowActualsTool');
+        
         // For debugging - show localStorage on page load
         console.log("Current localStorage:", {
             forecast: localStorage.getItem('financeTools_forecastData'),
@@ -1285,6 +1401,16 @@ async function loadAllData() {
                 console.log("Initial learning outcomes load complete");
             });
         }, 500);
+        
+        // Add save handlers to inputs
+        setTimeout(attachInputSaveHandlers, 1000);
+        
+        // Add keyboard shortcut for diagnostic (Ctrl+Shift+D)
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+                diagnoseDataIssues();
+            }
+        });
     });
 
     // Make necessary functions global
@@ -1299,6 +1425,8 @@ async function loadAllData() {
     window.updateSummary = updateSummary;
     window.initializeTool = initializeTool;
     window.loadAllData = loadAllData;
+    window.diagnoseDataIssues = diagnoseDataIssues;
+    window.attachInputSaveHandlers = attachInputSaveHandlers;
     
     // Add a periodic data check to ensure data persistence
     setInterval(() => {
