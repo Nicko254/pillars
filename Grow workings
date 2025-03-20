@@ -6,7 +6,177 @@
     <title>Actuals and Summary Module</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* ... (Your existing CSS styles) ... */
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background-color: #f0f0f0; 
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #4a4a4a;
+        }
+        .tile-container { 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 20px; 
+            justify-content: center;
+            margin-bottom: 30px; 
+        }
+        .tile {
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+            border-radius: 16px;
+            padding: 24px;
+            width: 300px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            color: white;
+            text-align: center;
+        }
+        .tile:hover { 
+            transform: translateY(-5px); 
+            box-shadow: 0 12px 20px rgba(0,0,0,0.2); 
+        }
+        .tile h2 { 
+            margin-top: 0; 
+            margin-bottom: 16px; 
+            font-size: 24px; 
+            font-weight: 600; 
+        }
+        .tile p { 
+            font-size: 14px; 
+            line-height: 1.5; 
+            margin-bottom: 0; 
+        }
+        .actuals-tool, .summary-tool { 
+            display: none;
+            margin-top: 20px; 
+            background-color: white; 
+            border-radius: 16px; 
+            padding: 24px; 
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-bottom: 20px; 
+        }
+        th, td { 
+            border: 1px solid #ddd; 
+            padding: 12px; 
+            text-align: left; 
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        input[type="number"], input[type="text"] { 
+            width: 100%; 
+            padding: 8px; 
+            box-sizing: border-box; 
+            font-size: 14px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .section-header { 
+            background-color: #e9ecef; 
+            font-weight: bold; 
+        }
+        .total-row { 
+            font-weight: bold; 
+            background-color: #f8f9fa; 
+        }
+        .chart-container { 
+            width: 100%; 
+            height: 400px; 
+            margin-top: 30px;
+        }
+        .comparison-table { 
+            margin-top: 30px; 
+        }
+        .comparison-table th { 
+            background-color: #e9ecef; 
+        }
+        .variance-positive { 
+            color: #28a745; 
+        }
+        .variance-negative { 
+            color: #dc3545; 
+        }
+        .learning-section {
+            margin-top: 30px;
+            width: 100%;
+        }
+        .learning-textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: vertical;
+            margin-bottom: 20px;
+        }
+        .tax-rate-input {
+            width: 80px;
+            padding: 8px;
+            margin-right: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .tax-rate-container {
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+        }
+        .financial-summary {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        .financial-summary div {
+            margin: 8px 0;
+            padding: 8px;
+            background-color: white;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .financial-summary h3 {
+            color: #4a4a4a;
+            margin-top: 0;
+        }
+        .add-row-btn, .remove-btn {
+            background-color: #6e8efb;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 12px;
+            border-radius: 4px;
+            margin: 2px;
+        }
+        .remove-btn { 
+            background-color: #ff4d4d; 
+        }
+        .category-input {
+            width: 100%;
+            padding: 4px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .status-message {
+            background-color: #f8f9fa;
+            padding: 8px 12px;
+            margin-top: 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -37,6 +207,7 @@
             <input type="number" id="incomeStatementActuals-tax-rate" value="25" min="0" max="100" step="0.1" style="width: 80px; margin-right: 10px;" onchange="calculateTotals('incomeStatementActualsTool')">
         </div>
         <div class="financial-summary"></div>
+        <div id="incomeStatementActualsTool-status" class="status-message"></div>
     </div>
 
     <div id="cashFlowActualsTool" class="actuals-tool">
@@ -50,6 +221,7 @@
             <input type="number" id="cashFlowActuals-tax-rate" value="25" min="0" max="100" step="0.1" style="width: 80px; margin-right: 10px;" onchange="calculateTotals('cashFlowActualsTool')">
         </div>
         <div class="financial-summary"></div>
+        <div id="cashFlowActualsTool-status" class="status-message"></div>
     </div>
 
     <div id="summaryTool" class="summary-tool">
@@ -67,6 +239,7 @@
             <h4>Success Factors Identified</h4>
             <textarea id="successFactorsText" class="learning-textarea" placeholder="What factors contributed to your success or would be crucial for future success?" onchange="saveLearningOutcomes()"></textarea>
         </div>
+        <div id="summaryTool-status" class="status-message"></div>
     </div>
 
     <script>
@@ -76,6 +249,7 @@
                 incomeStatementActualsTool: {
                     table: 'incomeStatementActualsTable',
                     chart: 'incomeStatementActualsChart',
+                    chartInstance: null,
                     sections: [
                         { name: 'Revenue', rows: ['Sales', 'Other Income'] },
                         { name: 'Expenses', rows: ['Cost of Goods Sold', 'Salaries', 'Rent', 'Utilities', 'Marketing', 'Other Expenses'] }
@@ -84,6 +258,7 @@
                 cashFlowActualsTool: {
                     table: 'cashFlowActualsTable',
                     chart: 'cashFlowActualsChart',
+                    chartInstance: null,
                     sections: [
                         { name: 'Cash Inflows', rows: ['Sales', 'Investments', 'Other Income'] },
                         { name: 'Cash Outflows', rows: ['Expenses', 'Equipment Purchases', 'Loan Payments'] }
@@ -91,16 +266,58 @@
                 }
             };
 
+            // Show status message
+            function showStatus(toolId, message, isError = false) {
+                const statusElement = document.getElementById(`${toolId}-status`);
+                if (!statusElement) return;
+                
+                statusElement.textContent = message;
+                statusElement.style.display = 'block';
+                statusElement.style.backgroundColor = isError ? '#ffe6e6' : '#e6f7e6';
+                statusElement.style.color = isError ? '#dc3545' : '#28a745';
+                
+                setTimeout(() => {
+                    statusElement.style.display = 'none';
+                }, 3000);
+            }
+
+            // Safe localStorage getter
+            function getFromStorage(key, defaultValue = {}) {
+                try {
+                    const value = localStorage.getItem(key);
+                    return value ? JSON.parse(value) : defaultValue;
+                } catch (error) {
+                    console.error(`Error getting ${key} from localStorage:`, error);
+                    return defaultValue;
+                }
+            }
+
+            // Safe localStorage setter
+            function setToStorage(key, value) {
+                try {
+                    localStorage.setItem(key, JSON.stringify(value));
+                    return true;
+                } catch (error) {
+                    console.error(`Error saving ${key} to localStorage:`, error);
+                    return false;
+                }
+            }
+
             function toggleTool(toolId) {
                 const tools = document.querySelectorAll('.actuals-tool, .summary-tool');
                 tools.forEach(tool => {
                     if (tool.id === toolId) {
-                        tool.style.display = tool.style.display === 'none' || tool.style.display === '' ? 'block' : 'none';
-                        if (tool.style.display === 'block') {
+                        const wasHidden = tool.style.display === 'none' || tool.style.display === '';
+                        tool.style.display = wasHidden ? 'block' : 'none';
+                        if (wasHidden) {
+                            console.log(`Showing ${toolId}`);
                             if (toolId === 'summaryTool') {
                                 updateSummary();
+                                loadLearningOutcomes();
+                                showStatus(toolId, 'Summary data loaded');
                             } else {
                                 initializeTool(toolId);
+                                showStatus(toolId, 'Tool initialized and data loaded');
                             }
                         }
                     } else {
@@ -109,12 +326,30 @@
                 });
             }
 
+            function getInputValue(toolId, section, category, colIndex) {
+                const savedData = getFromStorage(toolId, {});
+                const rowId = `${toolId}-${section.replace(/\s+/g, '')}-${category.replace(/\s+/g, '')}`;
+                return savedData[rowId] && savedData[rowId][colIndex] !== undefined ? savedData[rowId][colIndex] : '';
+            }
+
+            function getRowTotal(toolId, section, category) {
+                const savedData = getFromStorage(toolId, {});
+                const rowId = `${toolId}-${section.replace(/\s+/g, '')}-${category.replace(/\s+/g, '')}`;
+                
+                if (!savedData[rowId]) return 0;
+                
+                return savedData[rowId].reduce((acc, val) => {
+                    const parsed = parseFloat(val) || 0;
+                    return acc + parsed;
+                }, 0);
+            }
+
             function createRow(toolId, section, category, isEditable = false) {
                 const rowId = `${toolId}-${section.replace(/\s+/g, '')}-${category.replace(/\s+/g, '')}`;
 
                 let categoryCell;
                 if (isEditable) {
-                    categoryCell = `<td><input type="text" class="category-input" value="${category}" onchange="updateRowCategory('${toolId}', '${rowId}', this.value)" style="width: 100%; padding: 4px; border: 1px solid #ddd; border-radius: 4px;"></td>`;
+                    categoryCell = `<td><input type="text" class="category-input" value="${category}" onchange="updateRowCategory('${toolId}', '${rowId}', this.value, '${section}')" style="width: 100%; padding: 4px; border: 1px solid #ddd; border-radius: 4px;"></td>`;
                 } else {
                     categoryCell = `<td>${category}</td>`;
                 }
@@ -122,338 +357,718 @@
                 return `
                     <tr id="${rowId}">
                         ${categoryCell}
-                        ${months.map((_, i) => `<td><input type="number" class="actuals-input" data-tool="${toolId}" data-section="${section}" data-category="${category}" data-col="${i}" onchange="calculateTotals('${toolId}')" value="${getInputValue(toolId, rowId, i)}"></td>`).join('')}
-                        <td id="${rowId}Total">$${getRowTotal(toolId, rowId).toFixed(2)}</td>
-                        <td><button class="remove-btn" onclick="removeRow('${toolId}', '${rowId}')">Remove</button></td>
+                        ${months.map((_, i) => `<td><input type="number" class="actuals-input" data-tool="${toolId}" data-section="${section}" data-category="${category}" data-col="${i}" onchange="updateInputValue('${toolId}', '${section}', '${category}', ${i}, this.value)" value="${getInputValue(toolId, section, category, i)}"></td>`).join('')}
+                        <td id="${rowId}Total">$${getRowTotal(toolId, section, category).toFixed(2)}</td>
+                        <td><button class="remove-btn" onclick="removeRow('${toolId}', '${rowId}', '${section}', '${category}')">Remove</button></td>
                     </tr>`;
             }
 
-            function getInputValue(toolId, rowId, colIndex) {
-                const savedData = JSON.parse(localStorage.getItem(toolId)) || {};
-                return savedData[rowId] ? savedData[rowId][colIndex] || '' : '';
-            }
-
-            function getRowTotal(toolId, rowId) {
-                const savedData = JSON.parse(localStorage.getItem(toolId)) || {};
-                if (savedData[rowId]) {
-                    return savedData[rowId].reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
+            function updateInputValue(toolId, section, category, colIndex, value) {
+                try {
+                    const rowId = `${toolId}-${section.replace(/\s+/g, '')}-${category.replace(/\s+/g, '')}`;
+                    const savedData = getFromStorage(toolId, {});
+                    
+                    if (!savedData[rowId]) {
+                        savedData[rowId] = Array(months.length).fill('');
+                    }
+                    
+                    savedData[rowId][colIndex] = value;
+                    setToStorage(toolId, savedData);
+                    
+                    calculateTotals(toolId);
+                    showStatus(toolId, 'Data saved', false);
+                } catch (error) {
+                    console.error('Error updating input value:', error);
+                    showStatus(toolId, 'Error saving data', true);
                 }
-                return 0;
             }
 
-            function updateRowCategory(toolId, rowId, newCategory) {
-                const row = document.getElementById(rowId);
-                const inputs = row.querySelectorAll('.actuals-input');
-                inputs.forEach(input => {
-                    input.dataset.category = newCategory;
-                });
-                calculateTotals(toolId);
-            }
-   function initializeTool(toolId) {
-                const tool = tools[toolId];
-                const table = document.getElementById(tool.table);
-                if (table && table.rows.length === 0) {
-                    let html = `
-                        <tr>
-                            <th>Category</th>
-                            ${months.map(month => `<th>${month}</th>`).join('')}
-                            <th>Total</th>
-                            <th>Action</th>
-                        </tr>`;
-
-                    tool.sections.forEach(section => {
-                        html += `
-                            <tr class="section-header">
-                                <td colspan="${months.length + 3}">${section.name}
-                                    <button class="add-row-btn" onclick="addRow('${toolId}', '${section.name}')">Add Row</button>
-                                </td>
-                            </tr>`;
-                        section.rows.forEach(row => {
-                            html += createRow(toolId, section.name, row);
-                        });
-                        html += `
-                            <tr class="total-row">
-                                <td>Total ${section.name}</td>
-                                ${months.map((_, i) => `<td id="total${section.name.replace(/\s+/g, '')}${toolId}${i}">$${getSectionMonthTotal(toolId, section.name, i).toFixed(2)}</td>`).join('')}
-                                <td id="total${section.name.replace(/\s+/g, '')}${toolId}Total">$${getSectionTotal(toolId, section.name).toFixed(2)}</td>
-                                <td></td>
-                            </tr>`;
+            function updateRowCategory(toolId, rowId, newCategory, section) {
+                try {
+                    // Get old data
+                    const savedData = getFromStorage(toolId, {});
+                    const oldData = savedData[rowId];
+                    if (!oldData) return;
+                    
+                    // Create new row ID
+                    const newRowId = `${toolId}-${section.replace(/\s+/g, '')}-${newCategory.replace(/\s+/g, '')}`;
+                    
+                    // Update the DOM
+                    const row = document.getElementById(rowId);
+                    const inputs = row.querySelectorAll('.actuals-input');
+                    inputs.forEach(input => {
+                        input.dataset.category = newCategory;
+                        input.setAttribute('onchange', `updateInputValue('${toolId}', '${section}', '${newCategory}', ${input.dataset.col}, this.value)`);
                     });
-
-                    html += `
-                        <tr class="total-row">
-                            <td>${toolId === 'cashFlowActualsTool' ? 'Net Cash Flow' : 'Net Income'}</td>
-                            ${months.map((_, i) => `<td id="net${toolId}${i}">$${getNetMonthTotal(toolId, i).toFixed(2)}</td>`).join('')}
-                            <td id="net${toolId}Total">$${getNetTotal(toolId).toFixed(2)}</td>
-                            <td></td>
-                        </tr>`;
-
-                    table.innerHTML = html;
+                    
+                    // Update row ID in DOM
+                    row.id = newRowId;
+                    
+                    // Update total cell ID
+                    const totalCell = row.querySelector(`td:nth-last-child(2)`);
+                    totalCell.id = `${newRowId}Total`;
+                    
+                    // Update remove button
+                    const removeButton = row.querySelector('.remove-btn');
+                    removeButton.setAttribute('onclick', `removeRow('${toolId}', '${newRowId}', '${section}', '${newCategory}')`);
+                    
+                    // Save to storage with new key
+                    savedData[newRowId] = oldData;
+                    delete savedData[rowId];
+                    setToStorage(toolId, savedData);
+                    
+                    calculateTotals(toolId);
+                    showStatus(toolId, 'Category updated', false);
+                } catch (error) {
+                    console.error('Error updating row category:', error);
+                    showStatus(toolId, 'Error updating category', true);
                 }
-                calculateTotals(toolId);
             }
 
             function getSectionMonthTotal(toolId, sectionName, monthIndex) {
-                const savedData = JSON.parse(localStorage.getItem(toolId)) || {};
-                let total = 0;
-                for (const rowId in savedData) {
-                    if (rowId.startsWith(`${toolId}-${sectionName.replace(/\s+/g, '')}-`)) {
-                        total += parseFloat(savedData[rowId][monthIndex] || 0);
+                try {
+                    const savedData = getFromStorage(toolId, {});
+                    let total = 0;
+                    
+                    for (const rowId in savedData) {
+                        // Only include rows from the correct section
+                        if (rowId.startsWith(`${toolId}-${sectionName.replace(/\s+/g, '')}-`)) {
+                            total += parseFloat(savedData[rowId][monthIndex] || 0);
+                        }
                     }
+                    
+                    return total;
+                } catch (error) {
+                    console.error(`Error calculating section month total for ${sectionName}:`, error);
+                    return 0;
                 }
-                return total;
             }
 
             function getSectionTotal(toolId, sectionName) {
-                const savedData = JSON.parse(localStorage.getItem(toolId)) || {};
-                let total = 0;
-                for (const rowId in savedData) {
-                    if (rowId.startsWith(`${toolId}-${sectionName.replace(/\s+/g, '')}-`)) {
-                        total += savedData[rowId].reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
+                try {
+                    let total = 0;
+                    for (let i = 0; i < months.length; i++) {
+                        total += getSectionMonthTotal(toolId, sectionName, i);
                     }
+                    return total;
+                } catch (error) {
+                    console.error(`Error calculating section total for ${sectionName}:`, error);
+                    return 0;
                 }
-                return total;
             }
 
             function getNetMonthTotal(toolId, monthIndex) {
-                const tool = tools[toolId];
-                const revenue = getSectionMonthTotal(toolId, tool.sections[0].name, monthIndex);
-                const expenses = getSectionMonthTotal(toolId, tool.sections[1].name, monthIndex);
-                const taxRateInput = document.getElementById(`${toolId}-tax-rate`);
-                const taxRate = (parseFloat(taxRateInput?.value) || 25) / 100;
-                const profit = revenue - expenses;
-                const tax = profit > 0 ? profit * taxRate : 0;
-                return profit - tax;
+                try {
+                    const tool = tools[toolId];
+                    const revenue = getSectionMonthTotal(toolId, tool.sections[0].name, monthIndex);
+                    const expenses = getSectionMonthTotal(toolId, tool.sections[1].name, monthIndex);
+                    const taxRateInput = document.getElementById(`${toolId}-tax-rate`);
+                    const taxRate = (parseFloat(taxRateInput?.value) || 25) / 100;
+                    const profit = revenue - expenses;
+                    const tax = profit > 0 ? profit * taxRate : 0;
+                    return profit - tax;
+                } catch (error) {
+                    console.error(`Error calculating net month total:`, error);
+                    return 0;
+                }
             }
 
             function getNetTotal(toolId) {
-                let total = 0;
-                months.forEach((_, i) => {
-                    total += getNetMonthTotal(toolId, i);
-                });
-                return total;
+                try {
+                    let total = 0;
+                    for (let i = 0; i < months.length; i++) {
+                        total += getNetMonthTotal(toolId, i);
+                    }
+                    return total;
+                } catch (error) {
+                    console.error(`Error calculating net total:`, error);
+                    return 0;
+                }
+            }
+
+            function initializeTool(toolId) {
+                try {
+                    const tool = tools[toolId];
+                    const table = document.getElementById(tool.table);
+                    if (!table) return;
+                    
+                    // Only initialize if empty
+                    if (table.rows.length === 0) {
+                        let html = `
+                            <tr>
+                                <th>Category</th>
+                                ${months.map(month => `<th>${month}</th>`).join('')}
+                                <th>Total</th>
+                                <th>Action</th>
+                            </tr>`;
+
+                        tool.sections.forEach(section => {
+                            html += `
+                                <tr class="section-header">
+                                    <td colspan="${months.length + 3}">${section.name}
+                                        <button class="add-row-btn" onclick="addRow('${toolId}', '${section.name}')">Add Row</button>
+                                    </td>
+                                </tr>`;
+                            
+                            section.rows.forEach(row => {
+                                html += createRow(toolId, section.name, row);
+                            });
+                            
+                            html += `
+                                <tr class="total-row">
+                                    <td>Total ${section.name}</td>
+                                    ${months.map((_, i) => `<td id="total${section.name.replace(/\s+/g, '')}${toolId}${i}">$${getSectionMonthTotal(toolId, section.name, i).toFixed(2)}</td>`).join('')}
+                                    <td id="total${section.name.replace(/\s+/g, '')}${toolId}Total">$${getSectionTotal(toolId, section.name).toFixed(2)}</td>
+                                    <td></td>
+                                </tr>`;
+                        });
+
+                        html += `
+                            <tr class="total-row">
+                                <td>${toolId === 'cashFlowActualsTool' ? 'Net Cash Flow' : 'Net Income'}</td>
+                                ${months.map((_, i) => `<td id="net${toolId}${i}">$${getNetMonthTotal(toolId, i).toFixed(2)}</td>`).join('')}
+                                <td id="net${toolId}Total">$${getNetTotal(toolId).toFixed(2)}</td>
+                                <td></td>
+                            </tr>`;
+
+                        table.innerHTML = html;
+                    }
+                    
+                    // Initialize any custom rows from storage that are not in the standard rows
+                    const savedData = getFromStorage(toolId, {});
+                    for (const rowId in savedData) {
+                        const parts = rowId.split('-');
+                        if (parts.length >= 3) {
+                            const sectionName = parts[1];
+                            const section = tool.sections.find(s => s.name.replace(/\s+/g, '') === sectionName);
+                            if (section) {
+                                // Extract the category name from the rowId
+                                // Remove toolId and sectionName from the beginning
+                                const categoryPrefix = `${toolId}-${sectionName}-`;
+                                const category = rowId.substring(categoryPrefix.length);
+                                
+                                // Check if this is a custom row (not in standard rows)
+                                if (!section.rows.includes(category) && 
+                                    !document.getElementById(rowId)) {
+                                    
+                                    // Find the section's total row to insert before
+                                    const totalRow = Array.from(table.rows).find(row => 
+                                        row.cells[0].textContent.trim() === `Total ${section.name}`
+                                    );
+                                    
+                                    if (totalRow) {
+                                        const newRowHtml = createRow(toolId, section.name, category, true);
+                                        totalRow.insertAdjacentHTML('beforebegin', newRowHtml);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    calculateTotals(toolId);
+                } catch (error) {
+                    console.error(`Error initializing tool ${toolId}:`, error);
+                    showStatus(toolId, 'Error initializing tool', true);
+                }
             }
 
             function addRow(toolId, section) {
-                const table = document.getElementById(tools[toolId].table);
-                const sectionRows = Array.from(table.querySelectorAll(`tr`)).filter(row =>
-                    row.id && row.id.startsWith(`${toolId}-${section.replace(/\s+/g, '')}-`)
-                );
-                const newRowNumber = sectionRows.length + 1;
-                const newCategory = `New Item ${newRowNumber}`;
-                const newRowHtml = createRow(toolId, section, newCategory, true);
-
-                const totalRow = Array.from(table.rows).find(row =>
-                    row.cells[0].textContent.trim() === `Total ${section}`
-                );
-
-                if (totalRow) {
-                    totalRow.insertAdjacentHTML('beforebegin', newRowHtml);
-                    calculateTotals(toolId);
-                }
-            }
-
-            function removeRow(toolId, rowId) {
-                const row = document.getElementById(rowId);
-                if (row) {
-                    row.remove();
-                    deleteSavedData(toolId, rowId);
-                    calculateTotals(toolId);
-                }
-            }
-
-            function deleteSavedData(toolId, rowId) {
-                const savedData = JSON.parse(localStorage.getItem(toolId)) || {};
-                delete savedData[rowId];
-                localStorage.setItem(toolId, JSON.stringify(savedData));
-            }
-
-            function calculateSectionTotal(toolId, sectionName) {
-                const totalElement = document.getElementById(`total${sectionName.replace(/\s+/g, '')}${toolId}Total`);
-                return totalElement ? parseFloat(totalElement.textContent.replace('$', '')) || 0 : 0;
-            }
-function calculateTotals(toolId) {
-                const tool = tools[toolId];
-                const savedData = JSON.parse(localStorage.getItem(toolId)) || {};
-
-                // Update row totals
-                for (const rowId in savedData) {
-                    const rowTotalElement = document.getElementById(`${rowId}Total`);
-                    if (rowTotalElement) {
-                        rowTotalElement.textContent = `$${getRowTotal(toolId, rowId).toFixed(2)}`;
+                try {
+                    const table = document.getElementById(tools[toolId].table);
+                    if (!table) return;
+                    
+                    const sectionRows = Array.from(table.querySelectorAll(`tr`)).filter(row =>
+                        row.id && row.id.startsWith(`${toolId}-${section.replace(/\s+/g, '')}-`)
+                    );
+                    
+                    const newRowNumber = sectionRows.length + 1;
+                    const newCategory = `New Item ${newRowNumber}`;
+                    
+                    // Create row in the DOM
+                    const newRowHtml = createRow(toolId, section, newCategory, true);
+                    
+                    // Find the total row to insert before
+                    const totalRow = Array.from(table.rows).find(row =>
+                        row.cells[0].textContent.trim() === `Total ${section}`
+                    );
+                    
+                    if (totalRow) {
+                        totalRow.insertAdjacentHTML('beforebegin', newRowHtml);
+                        
+                        // Initialize storage for this row
+                        const rowId = `${toolId}-${section.replace(/\s+/g, '')}-${newCategory.replace(/\s+/g, '')}`;
+                        const savedData = getFromStorage(toolId, {});
+                        savedData[rowId] = Array(months.length).fill('');
+                        setToStorage(toolId, savedData);
+                        
+                        calculateTotals(toolId);
+                        showStatus(toolId, 'New row added', false);
                     }
+                } catch (error) {
+                    console.error(`Error adding row to ${toolId}:`, error);
+                    showStatus(toolId, 'Error adding row', true);
                 }
+            }
 
-                // Update section month totals
-                tool.sections.forEach(section => {
-                    months.forEach((_, i) => {
-                        const totalElement = document.getElementById(`total${section.name.replace(/\s+/g, '')}<span class="math-inline">\{toolId\}</span>{i}`);
-                        if (totalElement) {
-                            totalElement.textContent = `$${getSectionMonthTotal(toolId, section.name, i).toFixed(2)}`;
+            function removeRow(toolId, rowId, section, category) {
+                try {
+                    // Remove from DOM
+                    const row = document.getElementById(rowId);
+                    if (row) {
+                        row.remove();
+                    }
+                    
+                    // Remove from storage
+                    const savedData = getFromStorage(toolId, {});
+                    delete savedData[rowId];
+                    setToStorage(toolId, savedData);
+                    
+                    calculateTotals(toolId);
+                    showStatus(toolId, 'Row removed', false);
+                } catch (error) {
+                    console.error(`Error removing row ${rowId}:`, error);
+                    showStatus(toolId, 'Error removing row', true);
+                }
+            }
+
+            function calculateTotals(toolId) {
+                try {
+                    const tool = tools[toolId];
+                    
+                    // Update section month totals
+                    tool.sections.forEach(section => {
+                        // For each month
+                        months.forEach((_, i) => {
+                            const totalElement = document.getElementById(`total${section.name.replace(/\s+/g, '')}${toolId}${i}`);
+                            if (totalElement) {
+                                const total = getSectionMonthTotal(toolId, section.name, i);
+                                totalElement.textContent = `$${total.toFixed(2)}`;
+                            }
+                        });
+                        
+                        // Update section total
+                        const sectionTotalElement = document.getElementById(`total${section.name.replace(/\s+/g, '')}${toolId}Total`);
+                        if (sectionTotalElement) {
+                            const total = getSectionTotal(toolId, section.name);
+                            sectionTotalElement.textContent = `$${total.toFixed(2)}`;
                         }
                     });
-                    const sectionTotalElement = document.getElementById(`total${section.name.replace(/\s+/g, '')}${toolId}Total`);
-                    if (sectionTotalElement) {
-                        sectionTotalElement.textContent = `$${getSectionTotal(toolId, section.name).toFixed(2)}`;
-                    }
-                });
-
-                // Update net totals
-                months.forEach((_, i) => {
-                    const netTotalElement = document.getElementById(`net${toolId}${i}`);
+                    
+                    // Update net totals
+                    months.forEach((_, i) => {
+                        const netTotalElement = document.getElementById(`net${toolId}${i}`);
+                        if (netTotalElement) {
+                            const total = getNetMonthTotal(toolId, i);
+                            netTotalElement.textContent = `$${total.toFixed(2)}`;
+                        }
+                    });
+                    
+                    const netTotalElement = document.getElementById(`net${toolId}Total`);
                     if (netTotalElement) {
-                        netTotalElement.textContent = `$${getNetMonthTotal(toolId, i).toFixed(2)}`;
+                        const total = getNetTotal(toolId);
+                        netTotalElement.textContent = `$${total.toFixed(2)}`;
                     }
-                });
-                const netTotalElement = document.getElementById(`net${toolId}Total`);
-                if (netTotalElement) {
-                    netTotalElement.textContent = `$${getNetTotal(toolId).toFixed(2)}`;
+                    
+                    // Update individual row totals
+                    const savedData = getFromStorage(toolId, {});
+                    for (const rowId in savedData) {
+                        const rowTotalElement = document.getElementById(`${rowId}Total`);
+                        if (rowTotalElement) {
+                            const total = savedData[rowId].reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
+                            rowTotalElement.textContent = `$${total.toFixed(2)}`;
+                        }
+                    }
+                    
+                    // Update chart and financial summary
+                    updateChart(toolId);
+                    updateFinancialSummary(toolId);
+                } catch (error) {
+                    console.error(`Error calculating totals for ${toolId}:`, error);
+                    showStatus(toolId, 'Error calculating totals', true);
                 }
-
-                // Update chart and financial summary
-                updateChart(toolId);
-                updateFinancialSummary(toolId);
-
-                // Save data to localStorage
-                localStorage.setItem(toolId, JSON.stringify(savedData));
             }
 
             function updateChart(toolId) {
-                const tool = tools[toolId];
-                const chartElement = document.getElementById(tool.chart);
-                if (!chartElement) return;
-
-                const ctx = chartElement.getContext('2d');
-                const labels = months;
-                const datasets = tool.sections.map(section => ({
-                    label: section.name,
-                    data: months.map((_, i) => getSectionMonthTotal(toolId, section.name, i)),
-                    backgroundColor: section.name === tool.sections[0].name ? 'rgba(75, 192, 192, 0.2)' : 'rgba(255, 99, 132, 0.2)',
-                    borderColor: section.name === tool.sections[0].name ? 'rgba(75, 192, 192, 1)' : 'rgba(255, 99, 132, 1)',
-                    borderWidth: 1
-                }));
-
-                new Chart(ctx, {
-                    type: 'bar',
-                    data: { labels, datasets },
-                    options: {
-                        scales: { y: { beginAtZero: true } }
+                try {
+                    const tool = tools[toolId];
+                    const ctx = document.getElementById(tool.chart);
+                    if (!ctx) return;
+                    
+                    // Destroy previous chart if it exists
+                    if (tool.chartInstance) {
+                        tool.chartInstance.destroy();
                     }
-                });
+                    
+                    // Prepare datasets
+                    const datasets = [];
+                    
+                    // Add section datasets
+                    tool.sections.forEach((section, index) => {
+                        datasets.push({
+                            label: section.name,
+                            data: months.map((_, i) =>
+// Prepare datasets
+                    const datasets = [];
+                    
+                    // Add section datasets
+                    tool.sections.forEach((section, index) => {
+                        datasets.push({
+                            label: section.name,
+                            data: months.map((_, i) => getSectionMonthTotal(toolId, section.name, i)),
+                            backgroundColor: index === 0 ? 'rgba(75, 192, 192, 0.2)' : 'rgba(255, 99, 132, 0.2)',
+                            borderColor: index === 0 ? 'rgba(75, 192, 192, 1)' : 'rgba(255, 99, 132, 1)',
+                            borderWidth: 1
+                        });
+                    });
+                    
+                    // Create new chart
+                    tool.chartInstance = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: months,
+                            datasets: datasets
+                        },
+                        options: {
+                            responsive: true,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: 'Amount ($)'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                } catch (error) {
+                    console.error(`Error updating chart for ${toolId}:`, error);
+                }
             }
 
             function updateFinancialSummary(toolId) {
-                const tool = tools[toolId];
-                const summaryElement = document.querySelector(`#${toolId} .financial-summary`);
-                if (!summaryElement) return;
-
-                const revenue = calculateSectionTotal(toolId, tool.sections[0].name);
-                const expenses = calculateSectionTotal(toolId, tool.sections[1].name);
-                const taxRateInput = document.getElementById(`${toolId}-tax-rate`);
-                const taxRate = (parseFloat(taxRateInput?.value) || 25) / 100;
-                const profit = revenue - expenses;
-                const tax = profit > 0 ? profit * taxRate : 0;
-                const profitAfterTax = profit - tax;
-
-                summaryElement.innerHTML = `
-                    <div>Revenue: $${revenue.toFixed(2)}</div>
-                    <div>Expenses: $${expenses.toFixed(2)}</div>
-                    <div>Profit Before Tax: $${profit.toFixed(2)}</div>
-                    <div>Tax: $${tax.toFixed(2)}</div>
-                    <div>Net ${toolId === 'cashFlowActualsTool' ? 'Cash Flow' : 'Income'}: $${profitAfterTax.toFixed(2)}</div>
-                `;
+                try {
+                    const tool = tools[toolId];
+                    const summaryElement = document.querySelector(`#${toolId} .financial-summary`);
+                    if (!summaryElement) return;
+                    
+                    const revenue = getSectionTotal(toolId, tool.sections[0].name);
+                    const expenses = getSectionTotal(toolId, tool.sections[1].name);
+                    const taxRateInput = document.getElementById(`${toolId}-tax-rate`);
+                    const taxRate = (parseFloat(taxRateInput?.value) || 25) / 100;
+                    const profit = revenue - expenses;
+                    const tax = profit > 0 ? profit * taxRate : 0;
+                    const profitAfterTax = profit - tax;
+                    const profitMargin = revenue > 0 ? (profitAfterTax / revenue) * 100 : 0;
+                    
+                    summaryElement.innerHTML = `
+                        <h3>Financial Summary</h3>
+                        <div>Total ${tool.sections[0].name}: $${revenue.toFixed(2)}</div>
+                        <div>Total ${tool.sections[1].name}: $${expenses.toFixed(2)}</div>
+                        <div>Profit Before Tax: $${profit.toFixed(2)}</div>
+                        <div>Tax (${(taxRate * 100).toFixed(1)}%): $${tax.toFixed(2)}</div>
+                        <div>Net ${toolId === 'cashFlowActualsTool' ? 'Cash Flow' : 'Income'}: $${profitAfterTax.toFixed(2)}</div>
+                        <div>Profit Margin: ${profitMargin.toFixed(2)}%</div>
+                    `;
+                } catch (error) {
+                    console.error(`Error updating financial summary for ${toolId}:`, error);
+                }
             }
 
             function updateSummary() {
-                const incomeStatementActuals = JSON.parse(localStorage.getItem('incomeStatementActualsTool')) || {};
-                const cashFlowActuals = JSON.parse(localStorage.getItem('cashFlowActualsTool')) || {};
-                const forecastData = JSON.parse(localStorage.getItem('forecastData')) || { incomeStatement: { revenue: 0, expenses: 0, taxRate: 0 } };
-
-                const incomeStatementActualsRevenue = Object.values(incomeStatementActuals).reduce((acc, row) => acc + (row.reduce((rowAcc, val) => rowAcc + (parseFloat(val) || 0), 0)), 0);
-                const incomeStatementActualsExpenses = Object.values(incomeStatementActuals).reduce((acc, row) => acc + (row.reduce((rowAcc, val) => rowAcc + (parseFloat(val) || 0), 0)), 0);
-                const taxRate = forecastData.incomeStatement.taxRate / 100;
-                const forecastNetProfit = forecastData.incomeStatement.revenue - forecastData.incomeStatement.expenses;
-                const actualNetProfit = incomeStatementActualsRevenue - incomeStatementActualsExpenses;
-                const forecastTax = forecastNetProfit > 0 ? forecastNetProfit * taxRate : 0;
-                const actualTax = actualNetProfit > 0 ? actualNetProfit * taxRate : 0;
-                const forecastProfitAfterTax = forecastNetProfit - forecastTax;
-                const actualProfitAfterTax = actualNetProfit - actualTax;
-                const actualNetProfitMargin = incomeStatementActualsRevenue !== 0 ? (actualProfitAfterTax / incomeStatementActualsRevenue) * 100 : 0;
-
-                const comparisonTables = document.getElementById('comparisonTables');
-                if (comparisonTables) {
-                    comparisonTables.innerHTML = `
-                        <table>
+                try {
+                    const comparisonTables = document.getElementById('comparisonTables');
+                    if (!comparisonTables) return;
+                    
+                    // Get comparison data
+                    const forecastData = getFromStorage('financeTools_forecastData', { 
+                        incomeStatement: { revenue: 0, expenses: 0 } 
+                    });
+                    
+                    // Try alternate storage location for backward compatibility
+                    if (!forecastData.incomeStatement || 
+                        (forecastData.incomeStatement.revenue === 0 && forecastData.incomeStatement.expenses === 0)) {
+                        const altForecastData = getFromStorage('forecastData', { 
+                            incomeStatement: { revenue: 0, expenses: 0 } 
+                        });
+                        if (altForecastData.incomeStatement) {
+                            forecastData.incomeStatement = altForecastData.incomeStatement;
+                        }
+                    }
+                    
+                    // Calculate actuals
+                    const incomeStatementRevenue = getSectionTotal('incomeStatementActualsTool', 'Revenue');
+                    const incomeStatementExpenses = getSectionTotal('incomeStatementActualsTool', 'Expenses');
+                    
+                    // Get tax rate
+                    const taxRateInput = document.getElementById('incomeStatementActuals-tax-rate');
+                    const taxRate = (parseFloat(taxRateInput?.value) || 25) / 100;
+                    
+                    // Calculate profits
+                    const forecastNetProfit = forecastData.incomeStatement.revenue - forecastData.incomeStatement.expenses;
+                    const actualNetProfit = incomeStatementRevenue - incomeStatementExpenses;
+                    const forecastTax = forecastNetProfit > 0 ? forecastNetProfit * taxRate : 0;
+                    const actualTax = actualNetProfit > 0 ? actualNetProfit * taxRate : 0;
+                    const forecastProfitAfterTax = forecastNetProfit - forecastTax;
+                    const actualProfitAfterTax = actualNetProfit - actualTax;
+                    
+                    // Calculate margins
+                    const actualGrossProfitMargin = incomeStatementRevenue > 0 
+                        ? (actualNetProfit / incomeStatementRevenue) * 100 
+                        : 0;
+                    const actualNetProfitMargin = incomeStatementRevenue > 0 
+                        ? (actualProfitAfterTax / incomeStatementRevenue) * 100 
+                        : 0;
+                    const expenseRatio = incomeStatementRevenue > 0 
+                        ? (incomeStatementExpenses / incomeStatementRevenue) * 100 
+                        : 0;
+                    
+                    // Helper function for variance class
+                    const getVarianceClass = (actual, forecast) => {
+                        if (actual > forecast) return 'variance-positive';
+                        if (actual < forecast) return 'variance-negative';
+                        return '';
+                    };
+                    
+                    // Helper function for safe percentage calculation
+                    const safePercentage = (numerator, denominator) => {
+                        if (!denominator || denominator === 0) return 0;
+                        return (numerator / denominator) * 100;
+                    };
+                    
+                    // Build table HTML
+                    let html = `
+                        <h3>Income Statement Analysis</h3>
+                        <table class="comparison-table">
                             <tr>
-                                <th>Item</th>
+                                <th>Category</th>
                                 <th>Forecast</th>
                                 <th>Actual</th>
-                                <th>Difference</th>
-                                <th>% Change</th>
+                                <th>Variance</th>
+                                <th>Variance %</th>
                             </tr>
                             <tr>
                                 <td>Revenue</td>
-                                <td><span class="math-inline">\{forecastData\.incomeStatement\.revenue\.toFixed\(2\)\}</td\>
-<td\></span>{incomeStatementActualsRevenue.toFixed(2)}</td>
-                                <td>$<span class="math-inline">\{\(incomeStatementActualsRevenue \- forecastData\.incomeStatement\.revenue\)\.toFixed\(2\)\}</td\>
-<td\></span>{((incomeStatementActualsRevenue - forecastData.incomeStatement.revenue) / forecastData.incomeStatement.revenue * 100 || 0).toFixed(2)}%</td>
+                                <td>$${forecastData.incomeStatement.revenue.toFixed(2)}</td>
+                                <td>$${incomeStatementRevenue.toFixed(2)}</td>
+                                <td class="${getVarianceClass(incomeStatementRevenue, forecastData.incomeStatement.revenue)}">
+                                    $${(incomeStatementRevenue - forecastData.incomeStatement.revenue).toFixed(2)}
+                                </td>
+                                <td class="${getVarianceClass(incomeStatementRevenue, forecastData.incomeStatement.revenue)}">
+                                    ${safePercentage(incomeStatementRevenue - forecastData.incomeStatement.revenue, forecastData.incomeStatement.revenue).toFixed(2)}%
+                                </td>
                             </tr>
                             <tr>
                                 <td>Expenses</td>
-                                <td><span class="math-inline">\{forecastData\.incomeStatement\.expenses\.toFixed\(2\)\}</td\>
-<td\></span>{incomeStatementActualsExpenses.toFixed(2)}</td>
-                                <td>$<span class="math-inline">\{\(forecastData\.incomeStatement\.expenses \- incomeStatementActualsExpenses\)\.toFixed\(2\)\}</td\>
-<td\></span>{((forecastData.incomeStatement.expenses - incomeStatementActualsExpenses) / forecastData.incomeStatement.expenses * 100 || 0).toFixed(2)}%</td>
+                                <td>$${forecastData.incomeStatement.expenses.toFixed(2)}</td>
+                                <td>$${incomeStatementExpenses.toFixed(2)}</td>
+                                <td class="${getVarianceClass(forecastData.incomeStatement.expenses, incomeStatementExpenses)}">
+                                    $${(forecastData.incomeStatement.expenses - incomeStatementExpenses).toFixed(2)}
+                                </td>
+                                <td class="${getVarianceClass(forecastData.incomeStatement.expenses, incomeStatementExpenses)}">
+                                    ${safePercentage(forecastData.incomeStatement.expenses - incomeStatementExpenses, forecastData.incomeStatement.expenses).toFixed(2)}%
+                                </td>
                             </tr>
                             <tr>
-                                <td>Net Profit</td>
-                                <td><span class="math-inline">\{forecastNetProfit\.toFixed\(2\)\}</td\>
-<td\></span>{actualNetProfit.toFixed(2)}</td>
-                                <td>$<span class="math-inline">\{\(actualNetProfit \- forecastNetProfit\)\.toFixed\(2\)\}</td\>
-<td\></span>{((actualNetProfit - forecastNetProfit) / forecastNetProfit * 100 || 0).toFixed(2)}%</td>
+                                <td>Net Profit (Before Tax)</td>
+                                <td>$${forecastNetProfit.toFixed(2)}</td>
+                                <td>$${actualNetProfit.toFixed(2)}</td>
+                                <td class="${getVarianceClass(actualNetProfit, forecastNetProfit)}">
+                                    $${(actualNetProfit - forecastNetProfit).toFixed(2)}
+                                </td>
+                                <td class="${getVarianceClass(actualNetProfit, forecastNetProfit)}">
+                                    ${safePercentage(actualNetProfit - forecastNetProfit, forecastNetProfit).toFixed(2)}%
+                                </td>
                             </tr>
                             <tr>
-                                <td>Tax</td>
-                                <td><span class="math-inline">\{forecastTax\.toFixed\(2\)\}</td\>
-<td\></span>{actualTax.toFixed(2)}</td>
-                                <td>$<span class="math-inline">\{\(actualTax \- forecastTax\)\.toFixed\(2\)\}</td\>
-<td\></span>{((actualTax - forecastTax) / forecastTax * 100 || 0).toFixed(2)}%</td>
+                                <td>Tax (${(taxRate * 100).toFixed(1)}%)</td>
+                                <td>$${forecastTax.toFixed(2)}</td>
+                                <td>$${actualTax.toFixed(2)}</td>
+                                <td class="${getVarianceClass(forecastTax, actualTax)}">
+                                    $${(actualTax - forecastTax).toFixed(2)}
+                                </td>
+                                <td class="${getVarianceClass(forecastTax, actualTax)}">
+                                    ${safePercentage(actualTax - forecastTax, forecastTax).toFixed(2)}%
+                                </td>
                             </tr>
                             <tr>
-                                <td>Profit After Tax</td>
-                                <td><span class="math-inline">\{forecastProfitAfterTax\.toFixed\(2\)\}</td\>
-<td\></span>{actualProfitAfterTax.toFixed(2)}</td>
-                                <td>$<span class="math-inline">\{\(actualProfitAfterTax \- forecastProfitAfterTax\)\.toFixed\(2\)\}</td\>
-<td\></span>{((actualProfitAfterTax - forecastProfitAfterTax) / forecastProfitAfterTax * 100 || 0).toFixed(2)}%</td>
+                                <td>Net Profit (After Tax)</td>
+                                <td>$${forecastProfitAfterTax.toFixed(2)}</td>
+                                <td>$${actualProfitAfterTax.toFixed(2)}</td>
+                                <td class="${getVarianceClass(actualProfitAfterTax, forecastProfitAfterTax)}">
+                                    $${(actualProfitAfterTax - forecastProfitAfterTax).toFixed(2)}
+                                </td>
+                                <td class="${getVarianceClass(actualProfitAfterTax, forecastProfitAfterTax)}">
+                                    ${safePercentage(actualProfitAfterTax - forecastProfitAfterTax, forecastProfitAfterTax).toFixed(2)}%
+                                </td>
+                            </tr>
+                        </table>
+
+                        <h3>Key Performance Metrics</h3>
+                        <table class="comparison-table">
+                            <tr>
+                                <th>Metric</th>
+                                <th>Actual Value</th>
+                                <th>Description</th>
                             </tr>
                             <tr>
-                                <td>
- <td>Net Profit Margin</td>
-                                <td></td>
+                                <td>Gross Profit Margin</td>
+                                <td>${actualGrossProfitMargin.toFixed(2)}%</td>
+                                <td>Percentage of revenue that is profit before tax</td>
+                            </tr>
+                            <tr>
+                                <td>Net Profit Margin</td>
                                 <td>${actualNetProfitMargin.toFixed(2)}%</td>
-                                <td></td>
-                                <td></td>
+                                <td>Percentage of revenue that is profit after tax</td>
+                            </tr>
+                            <tr>
+                                <td>Expense Ratio</td>
+                                <td>${expenseRatio.toFixed(2)}%</td>
+                                <td>Expenses as a percentage of revenue</td>
                             </tr>
                         </table>
                     `;
+                    
+                    comparisonTables.innerHTML = html;
+                    
+                    // Update comparison chart
+                    updateComparisonChart(forecastProfitAfterTax, actualProfitAfterTax);
+                } catch (error) {
+                    console.error('Error updating summary:', error);
+                    showStatus('summaryTool', 'Error updating summary', true);
+                }
+            }
+
+            function updateComparisonChart(forecastProfit, actualProfit) {
+                try {
+                    const ctx = document.getElementById('comparisonChart');
+                    if (!ctx) return;
+                    
+                    // Destroy previous chart if it exists
+                    if (window.comparisonChart) {
+                        window.comparisonChart.destroy();
+                    }
+                    
+                    // Create new chart
+                    window.comparisonChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['Forecast', 'Actual'],
+                            datasets: [{
+                                label: 'Net Profit (After Tax)',
+                                data: [forecastProfit, actualProfit],
+                                backgroundColor: [
+                                    'rgba(54, 162, 235, 0.6)',
+                                    'rgba(75, 192, 192, 0.6)'
+                                ],
+                                borderColor: [
+                                    'rgb(54, 162, 235)',
+                                    'rgb(75, 192, 192)'
+                                ],
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: 'Amount ($)'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                } catch (error) {
+                    console.error('Error updating comparison chart:', error);
                 }
             }
 
             function saveLearningOutcomes() {
-                const learningData = {
-                    keyDecisions: document.getElementById('keyDecisionsText').value,
-                    challenges: document.getElementById('challengesText').value,
-                    successFactors: document.getElementById('successFactorsText').value
-                };
-                localStorage.setItem('learningOutcomes', JSON.stringify(learningData));
+                try {
+                    const learningData = {
+                        keyDecisions: document.getElementById('keyDecisionsText').value,
+                        challenges: document.getElementById('challengesText').value,
+                        successFactors: document.getElementById('successFactorsText').value
+                    };
+                    
+                    setToStorage('financeTools_learningOutcomes', learningData);
+                    // Also save to old format for backward compatibility
+                    setToStorage('learningOutcomes', learningData);
+                    
+                    showStatus('summaryTool', 'Learning outcomes saved', false);
+                } catch (error) {
+                    console.error('Error saving learning outcomes:', error);
+                    showStatus('summaryTool', 'Error saving learning outcomes', true);
+                }
             }
 
             function loadLearningOutcomes() {
-                const learningData = JSON.parse(localStorage.getItem('learningOutcomes')) || {};
-                document.getElementById('keyDecisionsText').value = learningData.keyDecisions || '';
-                document.getElementById('challengesText').value = learningData.challenges || '';
-                document.getElementById('successFactorsText').value = learningData.successFactors || '';
+                try {
+                    // Try new format first
+                    let learningData = getFromStorage('financeTools_learningOutcomes', null);
+                    
+                    // Fall back to old format if necessary
+                    if (!learningData) {
+                        learningData = getFromStorage('learningOutcomes', {
+                            keyDecisions: '',
+                            challenges: '',
+                            successFactors: ''
+                        });
+                    }
+                    
+                    if (learningData) {
+                        document.getElementById('keyDecisionsText').value = learningData.keyDecisions || '';
+                        document.getElementById('challengesText').value = learningData.challenges || '';
+                        document.getElementById('successFactorsText').value = learningData.successFactors || '';
+                    }
+                } catch (error) {
+                    console.error('Error loading learning outcomes:', error);
+                }
             }
+
+            // Set up auto-save for tax rate changes
+            function saveTaxRate(toolId) {
+                try {
+                    const taxRateInput = document.getElementById(`${toolId}-tax-rate`);
+                    if (taxRateInput) {
+                        const taxRate = parseFloat(taxRateInput.value) || 25;
+                        const savedData = getFromStorage('taxRates', {});
+                        savedData[toolId] = taxRate;
+                        setToStorage('taxRates', savedData);
+                    }
+                } catch (error) {
+                    console.error(`Error saving tax rate for ${toolId}:`, error);
+                }
+            }
+
+            // Load saved tax rates
+            function loadTaxRates() {
+                try {
+                    const savedData = getFromStorage('taxRates', {});
+                    Object.keys(tools).forEach(toolId => {
+                        const taxRateInput = document.getElementById(`${toolId}-tax-rate`);
+                        if (taxRateInput && savedData[toolId]) {
+                            taxRateInput.value = savedData[toolId];
+                        }
+                    });
+                } catch (error) {
+                    console.error('Error loading tax rates:', error);
+                }
+            }
+
+            // Add periodic auto-save
+            setInterval(() => {
+                Object.keys(tools).forEach(toolId => {
+                    const tool = document.getElementById(toolId);
+                    if (tool && tool.style.display === 'block') {
+                        console.log(`Auto-saving ${toolId}`);
+                        saveTaxRate(toolId);
+                    }
+                });
+            }, 60000); // Every minute
 
             // Event Listeners for Tool Toggles
             document.querySelectorAll('.tile').forEach(tile => {
@@ -463,8 +1078,23 @@ function calculateTotals(toolId) {
                 });
             });
 
-            // Load learning outcomes on page load
-            loadLearningOutcomes();
+            // Initialize tools on page load
+            document.addEventListener('DOMContentLoaded', function() {
+                console.log('Page loaded, initializing data');
+                loadTaxRates();
+                
+                // Load first tool by default
+                initializeTool('incomeStatementActualsTool');
+            });
+
+            // Make necessary functions globally available
+            window.toggleTool = toggleTool;
+            window.addRow = addRow;
+            window.removeRow = removeRow;
+            window.updateRowCategory = updateRowCategory;
+            window.calculateTotals = calculateTotals;
+            window.updateInputValue = updateInputValue;
+            window.saveLearningOutcomes = saveLearningOutcomes;
         })();
     </script>
 </body>
