@@ -182,15 +182,15 @@
 <body>
     <h1>Financial Analysis Dashboard</h1>
     <div class="tile-container">
-        <div class="tile" data-tool="incomeStatementActualsTool">
+        <div class="tile" data-tool="incomeStatementActualsTool" onclick="toggleTool('incomeStatementActualsTool')">
             <h2>Income Statement Actuals</h2>
             <p>Record and analyze your actual income statement data.</p>
         </div>
-        <div class="tile" data-tool="cashFlowActualsTool">
+        <div class="tile" data-tool="cashFlowActualsTool" onclick="toggleTool('cashFlowActualsTool')">
             <h2>Cash Flow Actuals</h2>
             <p>Track your actual cash inflows and outflows.</p>
         </div>
-        <div class="tile" data-tool="summaryTool">
+        <div class="tile" data-tool="summaryTool" onclick="toggleTool('summaryTool')">
             <h2>Forecast vs Actuals Summary</h2>
             <p>Compare your forecasts with actual results.</p>
         </div>
@@ -241,8 +241,12 @@
         </div>
         <div id="summaryTool-status" class="status-message"></div>
     </div>
-
-    <script>
+<script>
+        console.log("Script starting");
+        
+        // Define globally accessible functions
+        var toggleTool, addRow, removeRow, updateRowCategory, calculateTotals, updateInputValue, saveLearningOutcomes;
+        
         (function() {
             const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
             const tools = {
@@ -268,6 +272,7 @@
 
             // Show status message
             function showStatus(toolId, message, isError = false) {
+                console.log(`Status: ${message} (${isError ? 'error' : 'success'})`);
                 const statusElement = document.getElementById(`${toolId}-status`);
                 if (!statusElement) return;
                 
@@ -303,11 +308,14 @@
                 }
             }
 
-            function toggleTool(toolId) {
+            // Global toggleTool function with debugging
+            toggleTool = function(toolId) {
+                console.log(`toggleTool called for: ${toolId}`);
                 const tools = document.querySelectorAll('.actuals-tool, .summary-tool');
                 tools.forEach(tool => {
                     if (tool.id === toolId) {
                         const wasHidden = tool.style.display === 'none' || tool.style.display === '';
+                        console.log(`Tool ${toolId} was hidden: ${wasHidden}`);
                         tool.style.display = wasHidden ? 'block' : 'none';
                         if (wasHidden) {
                             console.log(`Showing ${toolId}`);
@@ -324,7 +332,7 @@
                         tool.style.display = 'none';
                     }
                 });
-            }
+            };
 
             function getInputValue(toolId, section, category, colIndex) {
                 const savedData = getFromStorage(toolId, {});
@@ -363,8 +371,10 @@
                     </tr>`;
             }
 
-            function updateInputValue(toolId, section, category, colIndex, value) {
+            // Global updateInputValue function
+            updateInputValue = function(toolId, section, category, colIndex, value) {
                 try {
+                    console.log(`Updating value for ${toolId}, ${section}, ${category}, column ${colIndex}: ${value}`);
                     const rowId = `${toolId}-${section.replace(/\s+/g, '')}-${category.replace(/\s+/g, '')}`;
                     const savedData = getFromStorage(toolId, {});
                     
@@ -381,10 +391,12 @@
                     console.error('Error updating input value:', error);
                     showStatus(toolId, 'Error saving data', true);
                 }
-            }
+            };
 
-            function updateRowCategory(toolId, rowId, newCategory, section) {
+            // Global updateRowCategory function
+            updateRowCategory = function(toolId, rowId, newCategory, section) {
                 try {
+                    console.log(`Updating row category: ${rowId} to ${newCategory}`);
                     // Get old data
                     const savedData = getFromStorage(toolId, {});
                     const oldData = savedData[rowId];
@@ -406,11 +418,11 @@
                     
                     // Update total cell ID
                     const totalCell = row.querySelector(`td:nth-last-child(2)`);
-                    totalCell.id = `${newRowId}Total`;
+                    if (totalCell) totalCell.id = `${newRowId}Total`;
                     
                     // Update remove button
                     const removeButton = row.querySelector('.remove-btn');
-                    removeButton.setAttribute('onclick', `removeRow('${toolId}', '${newRowId}', '${section}', '${newCategory}')`);
+                    if (removeButton) removeButton.setAttribute('onclick', `removeRow('${toolId}', '${newRowId}', '${section}', '${newCategory}')`);
                     
                     // Save to storage with new key
                     savedData[newRowId] = oldData;
@@ -423,7 +435,7 @@
                     console.error('Error updating row category:', error);
                     showStatus(toolId, 'Error updating category', true);
                 }
-            }
+            };
 
             function getSectionMonthTotal(toolId, sectionName, monthIndex) {
                 try {
@@ -460,6 +472,8 @@
             function getNetMonthTotal(toolId, monthIndex) {
                 try {
                     const tool = tools[toolId];
+                    if (!tool) return 0;
+                    
                     const revenue = getSectionMonthTotal(toolId, tool.sections[0].name, monthIndex);
                     const expenses = getSectionMonthTotal(toolId, tool.sections[1].name, monthIndex);
                     const taxRateInput = document.getElementById(`${toolId}-tax-rate`);
@@ -488,12 +502,22 @@
 
             function initializeTool(toolId) {
                 try {
+                    console.log(`Initializing tool: ${toolId}`);
                     const tool = tools[toolId];
+                    if (!tool) {
+                        console.error(`Tool not found: ${toolId}`);
+                        return;
+                    }
+                    
                     const table = document.getElementById(tool.table);
-                    if (!table) return;
+                    if (!table) {
+                        console.error(`Table not found for tool: ${toolId}`);
+                        return;
+                    }
                     
                     // Only initialize if empty
                     if (table.rows.length === 0) {
+                        console.log(`Creating table for ${toolId}`);
                         let html = `
                             <tr>
                                 <th>Category</th>
@@ -572,10 +596,15 @@
                 }
             }
 
-            function addRow(toolId, section) {
+            // Global addRow function
+            addRow = function(toolId, section) {
                 try {
+                    console.log(`Adding row to ${toolId}, section ${section}`);
                     const table = document.getElementById(tools[toolId].table);
-                    if (!table) return;
+                    if (!table) {
+                        console.error(`Table not found for ${toolId}`);
+                        return;
+                    }
                     
                     const sectionRows = Array.from(table.querySelectorAll(`tr`)).filter(row =>
                         row.id && row.id.startsWith(`${toolId}-${section.replace(/\s+/g, '')}-`)
@@ -603,19 +632,25 @@
                         
                         calculateTotals(toolId);
                         showStatus(toolId, 'New row added', false);
+                    } else {
+                        console.error(`Total row not found for section ${section}`);
                     }
                 } catch (error) {
                     console.error(`Error adding row to ${toolId}:`, error);
                     showStatus(toolId, 'Error adding row', true);
                 }
-            }
+            };
 
-            function removeRow(toolId, rowId, section, category) {
+            // Global removeRow function
+            removeRow = function(toolId, rowId, section, category) {
                 try {
+                    console.log(`Removing row: ${rowId}`);
                     // Remove from DOM
                     const row = document.getElementById(rowId);
                     if (row) {
                         row.remove();
+                    } else {
+                        console.error(`Row element not found: ${rowId}`);
                     }
                     
                     // Remove from storage
@@ -629,18 +664,23 @@
                     console.error(`Error removing row ${rowId}:`, error);
                     showStatus(toolId, 'Error removing row', true);
                 }
-            }
+            };
 
-            function calculateTotals(toolId) {
+            // Global calculateTotals function
+            calculateTotals = function(toolId) {
                 try {
                     const tool = tools[toolId];
+                    if (!tool) {
+                        console.error(`Tool not found: ${toolId}`);
+                        return;
+                    }
                     
                     // Update section month totals
                     tool.sections.forEach(section => {
                         // For each month
                         months.forEach((_, i) => {
                             const totalElement = document.getElementById(`total${section.name.replace(/\s+/g, '')}${toolId}${i}`);
-                            if (totalElement) {
+                          if (totalElement) {
                                 const total = getSectionMonthTotal(toolId, section.name, i);
                                 totalElement.textContent = `$${total.toFixed(2)}`;
                             }
@@ -686,7 +726,7 @@
                     console.error(`Error calculating totals for ${toolId}:`, error);
                     showStatus(toolId, 'Error calculating totals', true);
                 }
-            }
+            };
 
             function updateChart(toolId) {
                 try {
@@ -700,14 +740,6 @@
                     }
                     
                     // Prepare datasets
-                    const datasets = [];
-                    
-                    // Add section datasets
-                    tool.sections.forEach((section, index) => {
-                        datasets.push({
-                            label: section.name,
-                            data: months.map((_, i) =>
-// Prepare datasets
                     const datasets = [];
                     
                     // Add section datasets
@@ -986,8 +1018,10 @@
                 }
             }
 
-            function saveLearningOutcomes() {
+            // Global saveLearningOutcomes function
+            saveLearningOutcomes = function() {
                 try {
+                    console.log('Saving learning outcomes');
                     const learningData = {
                         keyDecisions: document.getElementById('keyDecisionsText').value,
                         challenges: document.getElementById('challengesText').value,
@@ -1003,7 +1037,7 @@
                     console.error('Error saving learning outcomes:', error);
                     showStatus('summaryTool', 'Error saving learning outcomes', true);
                 }
-            }
+            };
 
             function loadLearningOutcomes() {
                 try {
@@ -1070,14 +1104,6 @@
                 });
             }, 60000); // Every minute
 
-            // Event Listeners for Tool Toggles
-            document.querySelectorAll('.tile').forEach(tile => {
-                tile.addEventListener('click', function() {
-                    const toolId = this.dataset.tool;
-                    toggleTool(toolId);
-                });
-            });
-
             // Initialize tools on page load
             document.addEventListener('DOMContentLoaded', function() {
                 console.log('Page loaded, initializing data');
@@ -1086,15 +1112,6 @@
                 // Load first tool by default
                 initializeTool('incomeStatementActualsTool');
             });
-
-            // Make necessary functions globally available
-            window.toggleTool = toggleTool;
-            window.addRow = addRow;
-            window.removeRow = removeRow;
-            window.updateRowCategory = updateRowCategory;
-            window.calculateTotals = calculateTotals;
-            window.updateInputValue = updateInputValue;
-            window.saveLearningOutcomes = saveLearningOutcomes;
         })();
     </script>
 </body>
