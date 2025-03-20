@@ -153,18 +153,19 @@ function initializeTool(toolId) {
                 const tool = tools[toolId];
                 const table = document.getElementById(tool.table);
                 if (table && table.rows.length === 0) {
-                    let html = `<tr>
-                        <th>Category</th>
-                        ${months.map(month => `<th>${month}</th>`).join('')}
-                        <th>Total</th>
-                        <th>Action</th>
-                    </tr>`;
+                    let html = `
+                        <tr>
+                            <th>Category</th>
+                            ${months.map(month => `<th>${month}</th>`).join('')}
+                            <th>Total</th>
+                            <th>Action</th>
+                        </tr>`;
 
                     tool.sections.forEach(section => {
                         html += `
                             <tr class="section-header">
-                                <td colspan="${months.length + 3}">${section.name}
-                                    <button class="add-row-btn" onclick="addRow('${toolId}', '${section.name}')">Add Row</button>
+                                <td colspan="<span class="math-inline">\{months\.length \+ 3\}"\></span>{section.name}
+                                    <button class="add-row-btn" onclick="addRow('<span class="math-inline">\{toolId\}', '</span>{section.name}')">Add Row</button>
                                 </td>
                             </tr>`;
                         section.rows.forEach(row => {
@@ -173,8 +174,8 @@ function initializeTool(toolId) {
                         html += `
                             <tr class="total-row">
                                 <td>Total ${section.name}</td>
-                                ${months.map((_, i) => `<td id="total${section.name.replace(/\s+/g, '')}<span class="math-inline">\{toolId\}</span>{i}">$${getSectionMonthTotal(toolId, section.name, i).toFixed(2)}</td>`).join('')}
-                                <td id="total${section.name.replace(/\s+/g, '')}${toolId}Total">$${getSectionTotal(toolId, section.name).toFixed(2)}</td>
+                                ${months.map((_, i) => `<td id="total${section.name.replace(/\s+/g, '')}${toolId}${i}">$${getSectionMonthTotal(toolId, section.name, i).toFixed(2)}</td>`).join('')}
+                                <td id="total${section.name.replace(/\s+/g, '')}<span class="math-inline">\{toolId\}Total"\></span>${getSectionTotal(toolId, section.name).toFixed(2)}</td>
                                 <td></td>
                             </tr>`;
                     });
@@ -182,7 +183,7 @@ function initializeTool(toolId) {
                     html += `
                         <tr class="total-row">
                             <td>${toolId === 'cashFlowActualsTool' ? 'Net Cash Flow' : 'Net Income'}</td>
-                            ${months.map((_, i) => `<td id="net${toolId}<span class="math-inline">\{i\}"\></span>${getNetMonthTotal(toolId, i).toFixed(2)}</td>`).join('')}
+                            ${months.map((_, i) => `<td id="net${toolId}${i}">$${getNetMonthTotal(toolId, i).toFixed(2)}</td>`).join('')}
                             <td id="net${toolId}Total">$${getNetTotal(toolId).toFixed(2)}</td>
                             <td></td>
                         </tr>`;
@@ -196,7 +197,7 @@ function initializeTool(toolId) {
                 const savedData = JSON.parse(localStorage.getItem(toolId)) || {};
                 let total = 0;
                 for (const rowId in savedData) {
-                    if (rowId.startsWith(`${toolId}-${sectionName.replace(/\s+/g, '')}-`)) {
+                    if (rowId.startsWith(`<span class="math-inline">\{toolId\}\-</span>{sectionName.replace(/\s+/g, '')}-`)) {
                         total += parseFloat(savedData[rowId][monthIndex] || 0);
                     }
                 }
@@ -207,7 +208,7 @@ function initializeTool(toolId) {
                 const savedData = JSON.parse(localStorage.getItem(toolId)) || {};
                 let total = 0;
                 for (const rowId in savedData) {
-                    if (rowId.startsWith(`${toolId}-${sectionName.replace(/\s+/g, '')}-`)) {
+                    if (rowId.startsWith(`<span class="math-inline">\{toolId\}\-</span>{sectionName.replace(/\s+/g, '')}-`)) {
                         total += savedData[rowId].reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
                     }
                 }
@@ -236,7 +237,7 @@ function initializeTool(toolId) {
             function addRow(toolId, section) {
                 const table = document.getElementById(tools[toolId].table);
                 const sectionRows = Array.from(table.querySelectorAll(`tr`)).filter(row =>
-                    row.id && row.id.startsWith(`${toolId}-${section.replace(/\s+/g, '')}-`)
+                    row.id && row.id.startsWith(`<span class="math-inline">\{toolId\}\-</span>{section.replace(/\s+/g, '')}-`)
                 );
                 const newRowNumber = sectionRows.length + 1;
                 const newCategory = `New Item ${newRowNumber}`;
@@ -285,7 +286,7 @@ function initializeTool(toolId) {
                     const col = parseInt(input.dataset.col);
                     const section = input.dataset.section;
                     const category = input.dataset.category;
-                    const rowId = `${toolId}-${section.replace(/\s+/g, '')}-${category.replace(/\s+/g, '')}`;
+                    const rowId = `<span class="math-inline">\{toolId\}\-</span>{section.replace(/\s+/g, '')}-${category.replace(/\s+/g, '')}`;
 
                     totals[section][col] += value;
 
@@ -298,7 +299,7 @@ function initializeTool(toolId) {
 
                 tool.sections.forEach(section => {
                     months.forEach((_, i) => {
-                        const totalElement = document.getElementById(`total${section.name.replace(/\s+/g, '')}${toolId}${i}`);
+                        const totalElement = document.getElementById(`total${section.name.replace(/\s+/g, '')}<span class="math-inline">\{toolId\}</span>{i}`);
                         if (totalElement) {
                             totalElement.textContent = `$${totals[section.name][i].toFixed(2)}`;
                         }
@@ -334,12 +335,6 @@ function initializeTool(toolId) {
                 const totalNet = netTotals.reduce((a, b) => a + b, 0);
                 const netTotalElement = document.getElementById(`net${toolId}Total`);
                 if (netTotalElement) {
-                    netTotalElement.textContent = `$${totalNet.toFixed(2)}`;
-                }
-
-                const totalRevenue = totals[tool.sections[0].name].reduce((a, b) => a + b, 0);
-                const totalExpenses = totals[tool.sections[1].name].reduce((a, b) => a + b, 0);
-                const profit if (netTotalElement) {
                     netTotalElement.textContent = `$${totalNet.toFixed(2)}`;
                 }
 
