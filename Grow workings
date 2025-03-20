@@ -153,8 +153,7 @@ function initializeTool(toolId) {
                 const tool = tools[toolId];
                 const table = document.getElementById(tool.table);
                 if (table && table.rows.length === 0) {
-                    let html = `
-<tr>
+                    let html = `<tr>
                         <th>Category</th>
                         ${months.map(month => `<th>${month}</th>`).join('')}
                         <th>Total</th>
@@ -334,7 +333,13 @@ function initializeTool(toolId) {
 
                 const totalNet = netTotals.reduce((a, b) => a + b, 0);
                 const netTotalElement = document.getElementById(`net${toolId}Total`);
-if (netTotalElement) {
+                if (netTotalElement) {
+                    netTotalElement.textContent = `$${totalNet.toFixed(2)}`;
+                }
+
+                const totalRevenue = totals[tool.sections[0].name].reduce((a, b) => a + b, 0);
+                const totalExpenses = totals[tool.sections[1].name].reduce((a, b) => a + b, 0);
+                const profit if (netTotalElement) {
                     netTotalElement.textContent = `$${totalNet.toFixed(2)}`;
                 }
 
@@ -604,4 +609,3 @@ if (netTotalElement) {
             window.updateRowCategory = updateRowCategory;
         })();
     </script>
-    
