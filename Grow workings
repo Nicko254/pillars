@@ -149,7 +149,7 @@
                 });
                 calculateTotals(toolId);
             }
-function initializeTool(toolId) {
+   function initializeTool(toolId) {
                 const tool = tools[toolId];
                 const table = document.getElementById(tool.table);
                 if (table && table.rows.length === 0) {
@@ -428,7 +428,7 @@ function calculateTotals(toolId) {
                             </tr>
                             <tr>
                                 <td>
-<td>Net Profit Margin</td>
+ <td>Net Profit Margin</td>
                                 <td></td>
                                 <td>${actualNetProfitMargin.toFixed(2)}%</td>
                                 <td></td>
