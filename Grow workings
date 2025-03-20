@@ -154,18 +154,18 @@ function initializeTool(toolId) {
                 const table = document.getElementById(tool.table);
                 if (table && table.rows.length === 0) {
                     let html = `
-                        <tr>
-                            <th>Category</th>
-                            ${months.map(month => `<th>${month}</th>`).join('')}
-                            <th>Total</th>
-                            <th>Action</th>
-                        </tr>`;
+<tr>
+                        <th>Category</th>
+                        ${months.map(month => `<th>${month}</th>`).join('')}
+                        <th>Total</th>
+                        <th>Action</th>
+                    </tr>`;
 
                     tool.sections.forEach(section => {
                         html += `
                             <tr class="section-header">
-                                <td colspan="<span class="math-inline">\{months\.length \+ 3\}"\></span>{section.name}
-                                    <button class="add-row-btn" onclick="addRow('<span class="math-inline">\{toolId\}', '</span>{section.name}')">Add Row</button>
+                                <td colspan="${months.length + 3}">${section.name}
+                                    <button class="add-row-btn" onclick="addRow('${toolId}', '${section.name}')">Add Row</button>
                                 </td>
                             </tr>`;
                         section.rows.forEach(row => {
@@ -174,8 +174,8 @@ function initializeTool(toolId) {
                         html += `
                             <tr class="total-row">
                                 <td>Total ${section.name}</td>
-                                ${months.map((_, i) => `<td id="total${section.name.replace(/\s+/g, '')}${toolId}${i}">$${getSectionMonthTotal(toolId, section.name, i).toFixed(2)}</td>`).join('')}
-                                <td id="total${section.name.replace(/\s+/g, '')}<span class="math-inline">\{toolId\}Total"\></span>${getSectionTotal(toolId, section.name).toFixed(2)}</td>
+                                ${months.map((_, i) => `<td id="total${section.name.replace(/\s+/g, '')}<span class="math-inline">\{toolId\}</span>{i}">$${getSectionMonthTotal(toolId, section.name, i).toFixed(2)}</td>`).join('')}
+                                <td id="total${section.name.replace(/\s+/g, '')}${toolId}Total">$${getSectionTotal(toolId, section.name).toFixed(2)}</td>
                                 <td></td>
                             </tr>`;
                     });
@@ -183,7 +183,7 @@ function initializeTool(toolId) {
                     html += `
                         <tr class="total-row">
                             <td>${toolId === 'cashFlowActualsTool' ? 'Net Cash Flow' : 'Net Income'}</td>
-                            ${months.map((_, i) => `<td id="net${toolId}${i}">$${getNetMonthTotal(toolId, i).toFixed(2)}</td>`).join('')}
+                            ${months.map((_, i) => `<td id="net${toolId}<span class="math-inline">\{i\}"\></span>${getNetMonthTotal(toolId, i).toFixed(2)}</td>`).join('')}
                             <td id="net${toolId}Total">$${getNetTotal(toolId).toFixed(2)}</td>
                             <td></td>
                         </tr>`;
@@ -197,7 +197,7 @@ function initializeTool(toolId) {
                 const savedData = JSON.parse(localStorage.getItem(toolId)) || {};
                 let total = 0;
                 for (const rowId in savedData) {
-                    if (rowId.startsWith(`<span class="math-inline">\{toolId\}\-</span>{sectionName.replace(/\s+/g, '')}-`)) {
+                    if (rowId.startsWith(`${toolId}-${sectionName.replace(/\s+/g, '')}-`)) {
                         total += parseFloat(savedData[rowId][monthIndex] || 0);
                     }
                 }
@@ -208,7 +208,7 @@ function initializeTool(toolId) {
                 const savedData = JSON.parse(localStorage.getItem(toolId)) || {};
                 let total = 0;
                 for (const rowId in savedData) {
-                    if (rowId.startsWith(`<span class="math-inline">\{toolId\}\-</span>{sectionName.replace(/\s+/g, '')}-`)) {
+                    if (rowId.startsWith(`${toolId}-${sectionName.replace(/\s+/g, '')}-`)) {
                         total += savedData[rowId].reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
                     }
                 }
@@ -237,7 +237,7 @@ function initializeTool(toolId) {
             function addRow(toolId, section) {
                 const table = document.getElementById(tools[toolId].table);
                 const sectionRows = Array.from(table.querySelectorAll(`tr`)).filter(row =>
-                    row.id && row.id.startsWith(`<span class="math-inline">\{toolId\}\-</span>{section.replace(/\s+/g, '')}-`)
+                    row.id && row.id.startsWith(`${toolId}-${section.replace(/\s+/g, '')}-`)
                 );
                 const newRowNumber = sectionRows.length + 1;
                 const newCategory = `New Item ${newRowNumber}`;
@@ -286,7 +286,7 @@ function initializeTool(toolId) {
                     const col = parseInt(input.dataset.col);
                     const section = input.dataset.section;
                     const category = input.dataset.category;
-                    const rowId = `<span class="math-inline">\{toolId\}\-</span>{section.replace(/\s+/g, '')}-${category.replace(/\s+/g, '')}`;
+                    const rowId = `${toolId}-${section.replace(/\s+/g, '')}-${category.replace(/\s+/g, '')}`;
 
                     totals[section][col] += value;
 
@@ -299,7 +299,7 @@ function initializeTool(toolId) {
 
                 tool.sections.forEach(section => {
                     months.forEach((_, i) => {
-                        const totalElement = document.getElementById(`total${section.name.replace(/\s+/g, '')}<span class="math-inline">\{toolId\}</span>{i}`);
+                        const totalElement = document.getElementById(`total${section.name.replace(/\s+/g, '')}${toolId}${i}`);
                         if (totalElement) {
                             totalElement.textContent = `$${totals[section.name][i].toFixed(2)}`;
                         }
@@ -328,121 +328,121 @@ function initializeTool(toolId) {
 
                     const netElement = document.getElementById(`net${toolId}${i}`);
                     if (netElement) {
-                       netElement.textContent = `$${netTotals[i].toFixed(2)}`;
+                        netElement.textContent = `$${netTotals[i].toFixed(2)}`;
+                    }
+                });
+
+                const totalNet = netTotals.reduce((a, b) => a + b, 0);
+                const netTotalElement = document.getElementById(`net${toolId}Total`);
+if (netTotalElement) {
+                    netTotalElement.textContent = `$${totalNet.toFixed(2)}`;
                 }
-            });
 
-            const totalNet = netTotals.reduce((a, b) => a + b, 0);
-            const netTotalElement = document.getElementById(`net${toolId}Total`);
-            if (netTotalElement) {
-                netTotalElement.textContent = `$${totalNet.toFixed(2)}`;
-            }
+                const totalRevenue = totals[tool.sections[0].name].reduce((a, b) => a + b, 0);
+                const totalExpenses = totals[tool.sections[1].name].reduce((a, b) => a + b, 0);
+                const profitBeforeTax = totalRevenue - totalExpenses;
+                const totalTax = taxTotals.reduce((a, b) => a + b, 0);
+                const profitAfterTax = profitBeforeTax - totalTax;
+                const profitMargin = totalRevenue > 0 ? (profitAfterTax / totalRevenue) * 100 : 0;
 
-            const totalRevenue = totals[tool.sections[0].name].reduce((a, b) => a + b, 0);
-            const totalExpenses = totals[tool.sections[1].name].reduce((a, b) => a + b, 0);
-            const profitBeforeTax = totalRevenue - totalExpenses;
-            const totalTax = taxTotals.reduce((a, b) => a + b, 0);
-            const profitAfterTax = profitBeforeTax - totalTax;
-            const profitMargin = totalRevenue > 0 ? (profitAfterTax / totalRevenue) * 100 : 0;
-
-            const financialSummary = document.querySelector(`#${toolId} .financial-summary`);
-            if (financialSummary) {
-                financialSummary.innerHTML = `
-                    <h3>Financial Analysis</h3>
-                    <div>Total ${tool.sections[0].name}: $${totalRevenue.toFixed(2)}</div>
-                    <div>Total ${tool.sections[1].name}: $${totalExpenses.toFixed(2)}</div>
-                    <div>Profit Before Tax: $${profitBeforeTax.toFixed(2)}</div>
-                    <div>Tax: $${totalTax.toFixed(2)}</div>
-                    <div>Net ${toolId === 'cashFlowActualsTool' ? 'Cash Flow' : 'Income'}: $<span class="math-inline">\{profitAfterTax\.toFixed\(2\)\}</div\>
+                const financialSummary = document.querySelector(`#${toolId} .financial-summary`);
+                if (financialSummary) {
+                    financialSummary.innerHTML = `
+                        <h3>Financial Analysis</h3>
+                        <div>Total ${tool.sections[0].name}: $${totalRevenue.toFixed(2)}</div>
+                        <div>Total ${tool.sections[1].name}: $${totalExpenses.toFixed(2)}</div>
+                        <div>Profit Before Tax: $${profitBeforeTax.toFixed(2)}</div>
+                        <div>Tax: $${totalTax.toFixed(2)}</div>
+                        <div>Net ${toolId === 'cashFlowActualsTool' ? 'Cash Flow' : 'Income'}: $<span class="math-inline">\{profitAfterTax\.toFixed\(2\)\}</div\>
 <div\></span>{toolId === 'cashFlowActualsTool' ? 'Cash Flow' : 'Profit'} Margin: ${profitMargin.toFixed(2)}%</div>
-                `;
+                    `;
+                }
+
+                updateChart(toolId, netTotals);
             }
 
-            updateChart(toolId, netTotals);
-        }
+            function updateChart(toolId, data) {
+                const ctx = document.getElementById(tools[toolId].chart);
+                if (!ctx) return;
 
-        function updateChart(toolId, data) {
-            const ctx = document.getElementById(tools[toolId].chart);
-            if (!ctx) return;
+                if (window[`${toolId}Chart`]) {
+                    window[`${toolId}Chart`].destroy();
+                }
 
-            if (window[`${toolId}Chart`]) {
-                window[`${toolId}Chart`].destroy();
-            }
-
-            window[`${toolId}Chart`] = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: months,
-                    datasets: [{
-                        label: toolId === 'cashFlowActualsTool' ? 'Net Cash Flow' : 'Net Income',
-                        data: data,
-                        backgroundColor: data.map(value => value >= 0 ? 'rgba(75, 192, 192, 0.6)' : 'rgba(255, 99, 132, 0.6)'),
-                        borderColor: data.map(value => value >= 0 ? 'rgb(75, 192, 192)' : 'rgb(255, 99, 132)'),
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Amount ($)'
+                window[`${toolId}Chart`] = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: months,
+                        datasets: [{
+                            label: toolId === 'cashFlowActualsTool' ? 'Net Cash Flow' : 'Net Income',
+                            data: data,
+                            backgroundColor: data.map(value => value >= 0 ? 'rgba(75, 192, 192, 0.6)' : 'rgba(255, 99, 132, 0.6)'),
+                            borderColor: data.map(value => value >= 0 ? 'rgb(75, 192, 192)' : 'rgb(255, 99, 132)'),
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Amount ($)'
+                                }
                             }
                         }
                     }
-                }
-            });
-        }
+                });
+            }
 
-        function updateSummary() {
-            const comparisonTables = document.getElementById('comparisonTables');
-            const forecastData = JSON.parse(localStorage.getItem('forecastData')) || {
-                incomeStatement: { revenue: 0, expenses: 0 }
-            };
+            function updateSummary() {
+                const comparisonTables = document.getElementById('comparisonTables');
+                const forecastData = JSON.parse(localStorage.getItem('forecastData')) || {
+                    incomeStatement: { revenue: 0, expenses: 0 }
+                };
 
-            const incomeStatementActuals = {
-                revenue: calculateSectionTotal('incomeStatementActualsTool', 'Revenue'),
-                expenses: calculateSectionTotal('incomeStatementActualsTool', 'Expenses')
-            };
+                const incomeStatementActuals = {
+                    revenue: calculateSectionTotal('incomeStatementActualsTool', 'Revenue'),
+                    expenses: calculateSectionTotal('incomeStatementActualsTool', 'Expenses')
+                };
 
-            const taxRateInput = document.getElementById('incomeStatementActuals-tax-rate');
-            const taxRate = parseFloat(taxRateInput?.value) || 25;
+                const taxRateInput = document.getElementById('incomeStatementActuals-tax-rate');
+                const taxRate = parseFloat(taxRateInput?.value) || 25;
 
-            const actualNetProfit = incomeStatementActuals.revenue - incomeStatementActuals.expenses;
-            const actualTax = actualNetProfit > 0 ? actualNetProfit * (taxRate / 100) : 0;
-            const actualProfitAfterTax = actualNetProfit - actualTax;
-            const forecastNetProfit = forecastData.incomeStatement.revenue - forecastData.incomeStatement.expenses;
-            const forecastTax = forecastNetProfit > 0 ? forecastNetProfit * (taxRate / 100) : 0;
-            const forecastProfitAfterTax = forecastNetProfit - forecastTax;
+                const actualNetProfit = incomeStatementActuals.revenue - incomeStatementActuals.expenses;
+                const actualTax = actualNetProfit > 0 ? actualNetProfit * (taxRate / 100) : 0;
+                const actualProfitAfterTax = actualNetProfit - actualTax;
+                const forecastNetProfit = forecastData.incomeStatement.revenue - forecastData.incomeStatement.expenses;
+                const forecastTax = forecastNetProfit > 0 ? forecastNetProfit * (taxRate / 100) : 0;
+                const forecastProfitAfterTax = forecastNetProfit - forecastTax;
 
-            const actualGrossProfitMargin = (incomeStatementActuals.revenue > 0) ?
-                ((incomeStatementActuals.revenue - incomeStatementActuals.expenses) / incomeStatementActuals.revenue * 100) : 0;
-            const actualNetProfitMargin = (incomeStatementActuals.revenue > 0) ?
-                (actualProfitAfterTax / incomeStatementActuals.revenue * 100) : 0;
-            const actualExpenseRatio = (incomeStatementActuals.revenue > 0) ?
-                (incomeStatementActuals.expenses / incomeStatementActuals.revenue * 100) : 0;
+                const actualGrossProfitMargin = (incomeStatementActuals.revenue > 0) ?
+                    ((incomeStatementActuals.revenue - incomeStatementActuals.expenses) / incomeStatementActuals.revenue * 100) : 0;
+                const actualNetProfitMargin = (incomeStatementActuals.revenue > 0) ?
+                    (actualProfitAfterTax / incomeStatementActuals.revenue * 100) : 0;
+                const actualExpenseRatio = (incomeStatementActuals.revenue > 0) ?
+                    (incomeStatementActuals.expenses / incomeStatementActuals.revenue * 100) : 0;
 
-            let html = `
-                <h3>Income Statement Analysis</h3>
-                <table class="comparison-table">
-                    <tr>
-                        <th>Category</th>
-                        <th>Forecast</th>
-                        <th>Actual</th>
-                        <th>Variance</th>
-                        <th>Variance %</th>
-                    </tr>
-                    <tr>
-                        <td>Total Revenue</td>
-                        <td><span class="math-block">\{forecastData\.incomeStatement\.revenue\.toFixed\(2\)\}</td\>
+                let html = `
+                    <h3>Income Statement Analysis</h3>
+                    <table class="comparison-table">
+                        <tr>
+                            <th>Category</th>
+                            <th>Forecast</th>
+                            <th>Actual</th>
+                            <th>Variance</th>
+                            <th>Variance %</th>
+                        </tr>
+                        <tr>
+                            <td>Total Revenue</td>
+                            <td><span class="math-block">\{forecastData\.incomeStatement\.revenue\.toFixed\(2\)\}</td\>
 <td\></span>{incomeStatementActuals.revenue.toFixed(2)}</td>
-                        <td class="${incomeStatementActuals.revenue - forecastData.incomeStatement.revenue >= 0 ? 'variance-positive' : 'variance-negative'}">
-                            $<span class="math-inline">\{\(incomeStatementActuals\.revenue \- forecastData\.incomeStatement\.revenue\)\.toFixed\(2\)\}
+                            <td class="${incomeStatementActuals.revenue - forecastData.incomeStatement.revenue >= 0 ? 'variance-positive' : 'variance-negative'}">
+                                $<span class="math-inline">\{\(incomeStatementActuals\.revenue \- forecastData\.incomeStatement\.revenue\)\.toFixed\(2\)\}
 </td\>
 <td class\="</span>{incomeStatementActuals.revenue - forecastData.incomeStatement.revenue >= 0 ? 'variance-positive' : 'variance-negative'}">
-                            <span class="math-inline">\{\(\(incomeStatementActuals\.revenue \- forecastData\.incomeStatement\.revenue\) / forecastData\.incomeStatement\.revenue \* 100 \|\| 0\)\.toFixed\(2\)\}%
+                                <span class="math-inline">\{\(\(incomeStatementActuals\.revenue \- forecastData\.incomeStatement\.revenue\) / forecastData\.incomeStatement\.revenue \* 100 \|\| 0\)\.toFixed\(2\)\}%
 </td\>
 </tr\>
 <tr\>
@@ -450,10 +450,10 @@ function initializeTool(toolId) {
 <td\></span><span class="math-inline">\{forecastData\.incomeStatement\.expenses\.toFixed\(2\)\}</td\>
 <td\></span><span class="math-inline">\{incomeStatementActuals\.expenses\.toFixed\(2\)\}</td\>
 <td class\="</span>{forecastData.incomeStatement.expenses - incomeStatementActuals.expenses >= 0 ? 'variance-positive' : 'variance-negative'}">
-                            $<span class="math-inline">\{\(forecastData\.incomeStatement\.expenses \- incomeStatementActuals\.expenses\)\.toFixed\(2\)\}
+                                $<span class="math-inline">\{\(forecastData\.incomeStatement\.expenses \- incomeStatementActuals\.expenses\)\.toFixed\(2\)\}
 </td\>
 <td class\="</span>{forecastData.incomeStatement.expenses - incomeStatementActuals.expenses >= 0 ? 'variance-positive' : 'variance-negative'}">
-                            <span class="math-inline">\{\(\(forecastData\.incomeStatement\.expenses \- incomeStatementActuals\.expenses\) / forecastData\.incomeStatement\.expenses \* 100 \|\| 0\)\.toFixed\(2\)\}%
+                                <span class="math-inline">\{\(\(forecastData\.incomeStatement\.expenses \- incomeStatementActuals\.expenses\) / forecastData\.incomeStatement\.expenses \* 100 \|\| 0\)\.toFixed\(2\)\}%
 </td\>
 </tr\>
 <tr\>
@@ -461,21 +461,21 @@ function initializeTool(toolId) {
 <td\></span><span class="math-inline">\{forecastNetProfit\.toFixed\(2\)\}</td\>
 <td\></span><span class="math-inline">\{actualNetProfit\.toFixed\(2\)\}</td\>
 <td class\="</span>{actualNetProfit - forecastNetProfit >= 0 ? 'variance-positive' : 'variance-negative'}">
-                            $<span class="math-inline">\{\(actualNetProfit \- forecastNetProfit\)\.toFixed\(2\)\}
+                                $<span class="math-inline">\{\(actualNetProfit \- forecastNetProfit\)\.toFixed\(2\)\}
 </td\>
 <td class\="</span>{actualNetProfit - forecastNetProfit >= 0 ? 'variance-positive' : 'variance-negative'}">
-                            <span class="math-inline">\{\(\(actualNetProfit \- forecastNetProfit\) / forecastNetProfit \* 100 \|\| 0\)\.toFixed\(2\)\}%
+                                <span class="math-inline">\{\(\(actualNetProfit \- forecastNetProfit\) / forecastNetProfit \* 100 \|\| 0\)\.toFixed\(2\)\}%
 </td\>
 </tr\>
 <tr\>
 <td\>Tax \(</span>{taxRate}%)</td>
-                        <td><span class="math-block">\{forecastTax\.toFixed\(2\)\}</td\>
+                            <td><span class="math-block">\{forecastTax\.toFixed\(2\)\}</td\>
 <td\></span>{actualTax.toFixed(2)}</td>
-                        <td class="${forecastTax - actualTax >= 0 ? 'variance-positive' : 'variance-negative'}">
-                            $<span class="math-inline">\{\(actualTax \- forecastTax\)\.toFixed\(2\)\}
+                            <td class="${forecastTax - actualTax >= 0 ? 'variance-positive' : 'variance-negative'}">
+                                $<span class="math-inline">\{\(actualTax \- forecastTax\)\.toFixed\(2\)\}
 </td\>
 <td class\="</span>{forecastTax - actualTax >= 0 ? 'variance-positive' : 'variance-negative'}">
-                            <span class="math-inline">\{\(\(actualTax \- forecastTax\) / forecastTax \* 100 \|\| 0\)\.toFixed\(2\)\}%
+                                <span class="math-inline">\{\(\(actualTax \- forecastTax\) / forecastTax \* 100 \|\| 0\)\.toFixed\(2\)\}%
 </td\>
 </tr\>
 <tr\>
@@ -483,10 +483,10 @@ function initializeTool(toolId) {
 <td\></span><span class="math-inline">\{forecastProfitAfterTax\.toFixed\(2\)\}</td\>
 <td\></span><span class="math-inline">\{actualProfitAfterTax\.toFixed\(2\)\}</td\>
 <td class\="</span>{actualProfitAfterTax - forecastProfitAfterTax >= 0 ? 'variance-positive' : 'variance-negative'}">
-                            $<span class="math-inline">\{\(actualProfitAfterTax \- forecastProfitAfterTax\)\.toFixed\(2\)\}
+                                $<span class="math-inline">\{\(actualProfitAfterTax \- forecastProfitAfterTax\)\.toFixed\(2\)\}
 </td\>
 <td class\="</span>{actualProfitAfterTax - forecastProfitAfterTax >= 0 ? 'variance-positive' : 'variance-negative'}">
-                            <span class="math-inline">\{\(\(actualProfitAfterTax \- forecastProfitAfterTax\) / forecastProfitAfterTax \* 100 \|\| 0\)\.toFixed\(2\)\}%
+                                <span class="math-inline">\{\(\(actualProfitAfterTax \- forecastProfitAfterTax\) / forecastProfitAfterTax \* 100 \|\| 0\)\.toFixed\(2\)\}%
 </td\>
 </tr\>
 </table\>
@@ -499,108 +499,109 @@ function initializeTool(toolId) {
 <tr\>
 <td\>Gross Profit Margin</td\>
 <td\></span>{actualGrossProfitMargin.toFixed(2)}%</td>
-                    </tr>
-                    <tr>
-                        <td>Net Profit Margin</td>
-                        <td><span class="math-inline">\{actualNetProfitMargin\.toFixed\(2\)\}%</td\>
+                        </tr>
+                        <tr>
+                            <td>Net Profit Margin</td>
+                            <td><span class="math-inline">\{actualNetProfitMargin\.toFixed\(2\)\}%</td\>
 </tr\>
 <tr\>
 <td\>Expense Ratio</td\>
 <td\></span>{actualExpenseRatio.toFixed(2)}%</td>
-                    </tr>
-                </table>`;
+                        </tr>
+                    </table>`;
 
-            comparisonTables.innerHTML = html;
-            updateComparisonChart(forecastProfitAfterTax, actualProfitAfterTax);
-        }
-
-        function updateComparisonChart(forecast, actual) {
-            const ctx = document.getElementById('comparisonChart');
-            if (!ctx) return;
-
-            if (window.comparisonChart) {
-                window.comparisonChart.destroy();
+                comparisonTables.innerHTML = html;
+                updateComparisonChart(forecastProfitAfterTax, actualProfitAfterTax);
             }
 
-            window.comparisonChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['Forecast', 'Actual'],
-                    datasets: [{
-                        label: 'Net Profit (After Tax)',
-                        data: [forecast, actual],
-                        backgroundColor: ['rgba(54, 162, 235, 0.6)', 'rgba(75, 192, 192, 0.6)'],
-                        borderColor: ['rgb(54, 162, 235)', 'rgb(75, 192, 192)'],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Amount ($)'
+            function updateComparisonChart(forecast, actual) {
+                const ctx = document.getElementById('comparisonChart');
+                if (!ctx) return;
+
+                if (window.comparisonChart) {
+                    window.comparisonChart.destroy();
+                }
+
+                window.comparisonChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Forecast', 'Actual'],
+                        datasets: [{
+                            label: 'Net Profit (After Tax)',
+                            data: [forecast, actual],
+                            backgroundColor: ['rgba(54, 162, 235, 0.6)', 'rgba(75, 192, 192, 0.6)'],
+                            borderColor: ['rgb(54, 162, 235)', 'rgb(75, 192, 192)'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Amount ($)'
+                                }
                             }
                         }
                     }
-                }
-            });
-        }
-
-        function saveLearningOutcomes() {
-            const outcomes = {
-                keyDecisions: document.getElementById('keyDecisionsText').value,
-                challenges: document.getElementById('challengesText').value,
-                successFactors: document.getElementById('successFactorsText').value
-            };
-            localStorage.setItem('learningOutcomes', JSON.stringify(outcomes));
-        }
-
-        // Event listener setup
-        document.addEventListener('DOMContentLoaded', function() {
-            const tiles = document.querySelectorAll('.tile');
-            tiles.forEach(tile => {
-                tile.addEventListener('click', function() {
-                    const toolId = this.getAttribute('data-tool');
-                    if (toolId) {
-                        toggleTool(toolId);
-                    }
-                });
-            });
-
-            // Load learning outcomes if they exist
-            const savedOutcomes = JSON.parse(localStorage.getItem('learningOutcomes')) || {};
-            document.getElementById('keyDecisionsText').value = savedOutcomes.keyDecisions || '';
-            document.getElementById('challengesText').value = savedOutcomes.challenges || '';
-            document.getElementById('successFactorsText').value = savedOutcomes.successFactors || '';
-
-            // Initialize tools and load data
-            initializeTool('incomeStatementActualsTool');
-            initializeTool('cashFlowActualsTool');
-            loadSavedData('incomeStatementActualsTool');
-            loadSavedData('cashFlowActualsTool');
-        });
-
-        function loadSavedData(toolId) {
-            const savedData = JSON.parse(localStorage.getItem(toolId)) || {};
-            for (const rowId in savedData) {
-                const inputs = document.querySelectorAll(`#${rowId} .actuals-input`);
-                inputs.forEach((input, index) => {
-                    input.value = savedData[rowId][index] || '';
                 });
             }
-            calculateTotals(toolId);
-        }
 
-        // Make necessary functions global
-        window.calculateTotals = calculateTotals;
-        window.toggleTool = toggleTool;
-        window.calculateSectionTotal = calculateSectionTotal;
-        window.saveLearningOutcomes = saveLearningOutcomes;
-        window.addRow = addRow;
-        window.removeRow = removeRow;
-        window.updateRowCategory = updateRowCategory;
-    })();
+            function saveLearningOutcomes() {
+                const outcomes = {
+                    keyDecisions: document.getElementById('keyDecisionsText').value,
+                    challenges: document.getElementById('challengesText').value,
+                    successFactors: document.getElementById('successFactorsText').value
+                };
+                localStorage.setItem('learningOutcomes', JSON.stringify(outcomes));
+            }
+
+            // Event listener setup
+            document.addEventListener('DOMContentLoaded', function() {
+                const tiles = document.querySelectorAll('.tile');
+                tiles.forEach(tile => {
+                    tile.addEventListener('click', function() {
+                        const toolId = this.getAttribute('data-tool');
+                        if (toolId) {
+                            toggleTool(toolId);
+                        }
+                    });
+                });
+
+                // Load learning outcomes if they exist
+                const savedOutcomes = JSON.parse(localStorage.getItem('learningOutcomes')) || {};
+                document.getElementById('keyDecisionsText').value = savedOutcomes.keyDecisions || '';
+                document.getElementById('challengesText').value = savedOutcomes.challenges || '';
+                document.getElementById('successFactorsText').value = savedOutcomes.successFactors || '';
+
+                // Initialize tools and load data
+                initializeTool('incomeStatementActualsTool');
+                initializeTool('cashFlowActualsTool');
+                loadSavedData('incomeStatementActualsTool');
+                loadSavedData('cashFlowActualsTool');
+            });
+
+            function loadSavedData(toolId) {
+                const savedData = JSON.parse(localStorage.getItem(toolId)) || {};
+                for (const rowId in savedData) {
+                    const inputs = document.querySelectorAll(`#${rowId} .actuals-input`);
+                    inputs.forEach((input, index) => {
+                        input.value = savedData[rowId][index] || '';
+                    });
+                }
+                calculateTotals(toolId);
+            }
+
+            // Make necessary functions global
+            window.calculateTotals = calculateTotals;
+            window.toggleTool = toggleTool;
+            window.calculateSectionTotal = calculateSectionTotal;
+            window.saveLearningOutcomes = saveLearningOutcomes;
+            window.addRow = addRow;
+            window.removeRow = removeRow;
+            window.updateRowCategory = updateRowCategory;
+        })();
     </script>
+    
